@@ -1,0 +1,74 @@
+package Dance
+
+import SoundUtils
+import TimerUtils
+
+constant int CREATE_DANCERS = 'A00J'
+constant int DANCE_TARGET = 'A00K'
+constant int DANCE_EFFECT = 'A00L'
+constant SoundDefinition createDancerSnd = new SoundDefinition("war3mapImported\\Ready Or Not Here We Dance.mp3", false)
+constant SoundDefinition startDanceSnd = new SoundDefinition("war3mapImported\\SmallDance1.mp3", false)
+constant BASE_TICKS = 3
+
+class Dance
+    unit skeletonSource
+    unit caster
+    int ticks
+    int abilityLvl
+    real origMoveSpeed
+    sound snd
+    boolean first
+
+    construct(unit caster, unit skeleton)
+        this.skeletonSource = skeleton
+        this.caster = caster
+        this.abilityLvl = caster.getAbilityLevel(CREATE_DANCERS)
+        this.ticks = BASE_TICKS + abilityLvl * 2
+        this.origMoveSpeed = skeleton.getMoveSpeed()
+        first = true
+        
+        snd = startDanceSnd.play().snd
+        timer t = getTimer()
+        t.setData(this castTo int)
+        t.startPeriodic(1, () -> begin
+            Dance d = (GetExpiredTimer().getData() castTo Dance)
+            if(d.first)
+                d.skeletonSource.addAbility(DANCE_EFFECT)
+                d.skeletonSource.issueImmediateOrder("stomp")
+                d.skeletonSource.setAnimation("Birth")
+                d.skeletonSource.setMoveSpeed(0)
+                vec3 oldPos = d.caster.getPos3Real()
+                d.caster.setPosReal(d.skeletonSource.getPos3Real())
+                d.skeletonSource.setPosReal(oldPos)
+                d.first = false
+            d.skeletonSource.issueImmediateOrder("stomp")
+            d.skeletonSource.setAnimation("Birth")
+            d.ticks--
+            if(d.ticks <= 0)
+                GetExpiredTimer().pause()
+                d.skeletonSource.removeAbility(DANCE_EFFECT)
+                d.skeletonSource.setMoveSpeed(d.origMoveSpeed)
+                d.snd.stop(false, true)
+        end)
+    
+    static function startSwap(unit caster, unit target)
+        new Dance(caster, target)
+    
+    static function dancersCreated(unit caster)
+        createDancerSnd.playOnPoint(caster.getPos3Real())
+        caster.addAbility(DANCE_TARGET)
+        caster.setAbilityLevel(DANCE_TARGET, caster.getAbilityLevel(CREATE_DANCERS))
+
+        
+
+
+init
+    trigger t = CreateTrigger()
+    t.registerAnyUnitEvent(EVENT_PLAYER_UNIT_SPELL_ENDCAST)
+    t.addCondition(Condition(() -> GetSpellAbilityId() == CREATE_DANCERS))
+    t.addAction(() -> Dance.dancersCreated(GetSpellAbilityUnit()))
+
+    t = CreateTrigger()
+    t.registerAnyUnitEvent(EVENT_PLAYER_UNIT_SPELL_EFFECT)
+    t.addCondition(Condition(() -> GetSpellAbilityId() == DANCE_TARGET))
+    t.addAction(() -> Dance.startSwap(GetSpellAbilityUnit(), GetSpellTargetUnit()))

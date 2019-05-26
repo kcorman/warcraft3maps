@@ -1,0 +1,60 @@
+package FrightParty
+import TimerUtils
+import LinkedList
+import PTQConstants
+int FRIGHT_PARTY_ABILITY = 'A014'
+int FRIGHT_PARTY_CLEAVE = 'A015'
+int PHANTOM_TYPE = 'n008'
+int BERSERK_BUFF = 'Bbsk'
+class FrightParty
+    unit caster
+    LinkedList<unit> phantoms
+    construct(unit caster, int spellLevel)
+        this.caster = caster
+        this.phantoms = new LinkedList<unit>
+        SetUnitVertexColorBJ(caster, 100, 50, 50, 0.0)
+        caster.addAbility(FRIGHT_PARTY_CLEAVE)
+        caster.setAbilityLevel(FRIGHT_PARTY_CLEAVE, spellLevel)
+        for int i = 0 to spellLevel - 1
+            real incr = 3.14 * 2 / spellLevel
+            location loc = PTQUtils.vec2ToLoc(caster.getPos().polarOffset(angle(incr * i), 150))
+            unit u = CreateUnitAtLoc(Player(PLAYER_NEUTRAL_PASSIVE), PHANTOM_TYPE, loc, 0)
+            PTQUtils.makeUnitUnTargetable(u)
+            u.setInvulnerable(true)
+            phantoms.add(u)
+        timer startTimer = getTimer()
+        startTimer.setData(this castTo int)
+        startTimer.startPeriodic(.04, () -> (begin
+            FrightParty sa = (GetExpiredTimer().getData() castTo FrightParty)
+            if(sa.tick())
+                GetExpiredTimer().destr()
+        end))
+
+    function tick() returns boolean
+        for unit u in phantoms
+            // need to move perpendicular to the caster
+            angle ang = angle(caster.getPos().angleTo(u.getPos()).radians() + (3.14 * 2) / 50)
+            real dist = caster.getPos().distanceTo(u.getPos())
+            vec2 newPos = caster.getPos().polarOffset(ang, dist)
+            u.setPos(newPos.x, newPos.y)
+        if(not UnitHasBuffBJ(caster, BERSERK_BUFF))
+            finish()
+            return true
+        return false
+
+        
+    function finish()
+        SetUnitVertexColorBJ(caster, 100, 100, 100, 0.0)
+        caster.removeAbility(FRIGHT_PARTY_CLEAVE)
+        for unit u in phantoms
+            u.kill()
+        phantoms.clear()
+        destroy this
+
+init
+    trigger t = CreateTrigger()
+    t.registerAnyUnitEvent(EVENT_PLAYER_UNIT_SPELL_EFFECT)
+    t.addCondition(Condition(() -> GetSpellAbilityId() == FRIGHT_PARTY_ABILITY))
+    t.addAction(() -> begin
+        new FrightParty(GetSpellAbilityUnit(), GetSpellAbilityUnit().getAbilityLevel(FRIGHT_PARTY_ABILITY))
+    end)

@@ -1,0 +1,72 @@
+package Treason
+import TimerUtils
+import PTQConstants
+import SoundUtils
+constant real BASE_DMG_SEC = 75.0
+constant real DMG_LVL_FACTOR = 75.0
+constant int SPIN_ATTACK_ID = 'A00O'
+constant real MOVEMENT_SPEED = 400
+constant real TICK_TIME = 0.04
+constant real ACTUAL_SPIN = (3.14  * 2 / 5)
+constant real FLY_HEIGHT = 200
+constant SoundDefinition snd = new SoundDefinition("war3mapImported\\Screeching.wav", false)
+class SpinAttack
+    unit caster
+    real dmg
+    vec2 target
+    vec2 start
+    real totalDist
+    angle movementDir
+    vec2 movementVec
+    real movementPerTick
+    timer dmgTimer
+    int i = 0
+
+    construct(unit caster, location targetLoc)
+        this.caster = caster
+        int abilityLvl = caster.getAbilityLevel(SPIN_ATTACK_ID)
+        dmg = (BASE_DMG_SEC + (abilityLvl * DMG_LVL_FACTOR)) / 4
+        start = caster.getPos()
+        this.target = vec2(GetLocationX(targetLoc), GetLocationY(targetLoc))
+        totalDist = caster.getPos().distanceTo(vec2(GetLocationX(targetLoc), GetLocationY(targetLoc)))
+        snd.playOnPoint(caster.getPos3Real())
+        PTQUtils.enableFlyingForUnit(caster)
+        caster.setFlyHeight(FLY_HEIGHT, 400)
+        movementPerTick = MOVEMENT_SPEED * TICK_TIME
+        movementDir = start.angleTo(target)
+        movementVec = movementDir.direction(movementPerTick)
+        timer moveTimer = getTimer()
+        caster.setPathing(false)
+        dmgTimer = getTimer()
+        dmgTimer.setData(this castTo int)
+        dmgTimer.startPeriodic(.25, () -> (begin
+            SpinAttack sa = (GetExpiredTimer().getData() castTo SpinAttack)
+            group g = GetUnitsInRangeOfLocAll(150, Location(sa.caster.getX(), sa.caster.getY()))
+            for unit u in g
+                if(u != sa.caster)
+                    sa.caster.damageTarget(u, sa.dmg)
+            g.destr()
+        end))
+
+        moveTimer.setData(this castTo int)
+        moveTimer.startPeriodic(TICK_TIME, () -> (begin
+            SpinAttack sa = (GetExpiredTimer().getData() castTo SpinAttack)
+            vec3 newPos = sa.caster.getPos3Real() + sa.movementVec
+            sa.i++
+            angle slightPush = angle(ACTUAL_SPIN* sa.i)
+            newPos = newPos.offset2d(slightPush, 40)
+            sa.caster.setPosReal(newPos)
+            sa.caster.setFacing(sa.caster.getFacingAngle() + angle(PI / 4))
+            if(sa.caster.getPos3Real().distanceTo2d(sa.start) > sa.totalDist + 50)
+                sa.caster.setFlyHeight(0, 1000)
+                sa.caster.setPathing(true)
+                sa.dmgTimer.destr()
+                GetExpiredTimer().destr()
+        end))
+
+
+init
+    trigger t = CreateTrigger()
+    t.registerAnyUnitEvent(EVENT_PLAYER_UNIT_SPELL_CAST)
+    t.addCondition(Condition(() -> GetSpellAbilityId() == SPIN_ATTACK_ID))
+    t.addAction(() -> new SpinAttack(GetSpellAbilityUnit(), GetSpellTargetLoc()))

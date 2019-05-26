@@ -1,0 +1,13 @@
+package GreenThumb
+constant int GREEN_THUMB = 'A00Z'
+constant int GREEN_THUMB_UPG = 'R000'
+
+init
+    trigger t = CreateTrigger()
+    t.registerAnyUnitEvent(EVENT_PLAYER_HERO_SKILL)
+    t.addCondition(Condition(() -> GetLearnedSkill() == GREEN_THUMB))
+    
+    t.addAction(() -> begin
+        player p = GetLearningUnit().getOwner()
+        SetPlayerTechResearched(p, GREEN_THUMB_UPG, 1 + GetPlayerTechCountSimple(GREEN_THUMB_UPG, p))
+    end)

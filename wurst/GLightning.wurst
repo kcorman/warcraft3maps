@@ -1,0 +1,17 @@
+package GLightning
+import SoundUtils
+import Simulate3dSound
+import Knockback3
+constant SoundDefinition snd = new SoundDefinition("war3mapImported\\UnlimitedPower.mp3", false)
+constant int LIGHTING_SPELL = 'A00E'
+
+init
+    trigger t = CreateTrigger()
+    t.registerAnyUnitEvent(EVENT_PLAYER_UNIT_SPELL_EFFECT)
+    t.addCondition(Condition(() -> GetSpellAbilityId() == LIGHTING_SPELL))
+    t.addAction(() -> begin
+        sound s = snd.play().snd
+        bindSoundToPoint(s, GetSpellTargetUnit().getPos().x, GetSpellTargetUnit().getPos().y, 400,800, 15000)
+        Knockback3.add(GetSpellTargetUnit(), GetSpellTargetUnit().getPos().moveTowards(GetSpellAbilityUnit().getPos(), -500), 1000)
+        // Knockback3.add(GetSpellTargetUnit(), 100, GetSpellAbilityUnit().getFacingAngle(), angle(0))
+    end)

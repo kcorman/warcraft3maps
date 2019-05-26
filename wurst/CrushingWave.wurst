@@ -1,0 +1,55 @@
+package CrushingWave
+import TimerUtils
+import PTQConstants
+import SoundUtils
+constant real BASE_DMG_SEC = 75.0
+constant int WAVE_ATTACK_ID = 'A00V'
+constant real MOVEMENT_SPEED = 800
+constant real TICK_TIME = 0.04
+class CrushingWave
+    unit caster
+    boolean started = false
+    vec2 target
+    vec2 start
+    angle movementDir
+    vec2 movementVec
+    real movementPerTick
+
+    construct(unit caster, location targetLoc)
+        this.caster = caster
+        start = caster.getPos()
+        this.target = vec2(GetLocationX(targetLoc), GetLocationY(targetLoc))
+        movementPerTick = MOVEMENT_SPEED * TICK_TIME
+        movementDir = start.angleTo(target)
+        movementVec = movementDir.direction(movementPerTick)
+        caster.setPathing(false)
+        // caster.hide()
+        timer startTimer = getTimer()
+        caster.setAnimation("birth")
+        startTimer.setData(this castTo int)
+        startTimer.start(.35, () -> (begin
+            CrushingWave sa = (GetExpiredTimer().getData() castTo CrushingWave)
+            sa.caster.setPosReal(sa.caster.getPos3Real() + sa.movementVec * 4)
+            sa.startMoveTimer()
+            GetExpiredTimer().destr()
+        end))
+        
+
+    function startMoveTimer()
+        timer moveTimer = getTimer()
+        moveTimer.setData(this castTo int)
+        moveTimer.startPeriodic(TICK_TIME, () -> (begin
+            CrushingWave sa = (GetExpiredTimer().getData() castTo CrushingWave)
+            sa.caster.setPosReal(sa.caster.getPos3Real() + sa.movementVec)
+            if(sa.caster.getPos3Real().distanceTo2d(sa.target) < 20)
+                sa.caster.setFlyHeight(0, 1000)
+                sa.caster.setPathing(true)
+                ResetUnitAnimation(sa.caster)
+                // sa.caster.show()
+                GetExpiredTimer().destr()
+        end))
+init
+    trigger t = CreateTrigger()
+    t.registerAnyUnitEvent(EVENT_PLAYER_UNIT_SPELL_CAST)
+    t.addCondition(Condition(() -> GetSpellAbilityId() == WAVE_ATTACK_ID))
+    t.addAction(() -> new CrushingWave(GetSpellAbilityUnit(), GetSpellTargetLoc()))

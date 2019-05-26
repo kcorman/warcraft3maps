@@ -1,0 +1,32 @@
+package DoubleWhammy
+
+import PTQConstants
+int DOUBLE_WHAMMY_ABILITY = 'A013'
+int phantom = 'h001'
+
+
+init
+    trigger t = CreateTrigger()
+    t.registerAnyUnitEvent(EVENT_PLAYER_UNIT_ATTACKED)
+    t.addCondition(Condition(() -> begin
+        return GetAttacker().hasAbility(DOUBLE_WHAMMY_ABILITY) and (GetRandomInt(0, 15) < 4)
+    end))
+    t.addAction(() -> begin
+        group ug = CreateGroup()
+        for i = 1 to 3
+            vec2 pos = GetAttackedUnitBJ().getPos().polarOffset(angle(i * 3.14 * 2 / 3), 40)
+            vec2 attackedPos = GetAttackedUnitBJ().getPos()
+            CreateNUnitsAtLocFacingLocBJ(1, phantom, GetAttacker().getOwner(), PTQUtils.vec2ToLoc(pos), PTQUtils.vec2ToLoc(attackedPos))
+            GetLastCreatedUnit()..setPathing(false)
+                                ..setInvulnerable(true)
+                                ..issueTargetOrder("attack", GetAttackedUnitBJ())
+                                ..setVertexColor(100, 100, 100, 40)
+            ug.addUnit(GetLastCreatedUnit())
+        TriggerSleepAction(.7)
+        GetAttacker().damageTarget(GetAttackedUnitBJ(), GetAttacker().getAbilityLevel(DOUBLE_WHAMMY_ABILITY) * 75.0)
+        TriggerSleepAction(.5)
+        ForGroupBJ(ug, () -> begin
+            RemoveUnit(GetEnumUnit())
+        end)
+        ug.destr()
+    end)

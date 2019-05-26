@@ -1,0 +1,41 @@
+package Surprise
+import SoundUtils
+import TimerUtils
+constant int abilityId = 'A00I'
+constant SoundDefinition snd = new SoundDefinition("war3mapImported\\Any Questions 2.mp3", false)
+class DoSurprise
+    unit caster
+    unit target
+    effect e
+    construct(unit caster, unit target)
+        this.caster = caster
+        this.target = target
+
+    static function doSurprise(unit caster, unit target)
+        DoSurprise wrapper = new DoSurprise(caster, target)
+        timer t = getTimer()
+        t.setData(wrapper castTo int)
+        t.start(.5, () -> begin
+            DoSurprise s = (GetExpiredTimer().getData() castTo DoSurprise)
+            s.caster.setPosReal(s.target.getPos3Real() + s.target.getFacingAngle().direction(-50))
+            s.caster.setFacing(s.target.getFacingAngle())
+            s.caster.show()
+            s.caster.issueTargetOrder("attack", s.target)
+            snd.playOnPoint(s.target.getPos3Real())
+            s.doFear()
+        end)
+    function doFear()
+        target.issuePointOrder("move", caster.getPos().polarOffset(caster.getFacingAngle(), 400))
+        e = AddSpecialEffectTarget("Abilities\\Spells\\Other\\HowlOfTerror\\HowlTarget.mdl", target, "overhead")
+        timer t = getTimer()
+        t.setData(this castTo int)
+        t.start(2, () -> begin
+            DoSurprise s = (GetExpiredTimer().getData() castTo DoSurprise)
+            s.e.destr()
+        end)
+
+init
+    trigger t = CreateTrigger()
+    t.registerAnyUnitEvent(EVENT_PLAYER_UNIT_SPELL_EFFECT)
+    t.addCondition(Condition(() -> GetSpellAbilityId() == abilityId))
+    t.addAction(() -> DoSurprise.doSurprise(GetSpellAbilityUnit(), GetSpellTargetUnit()))

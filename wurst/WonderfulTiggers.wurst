@@ -1,0 +1,94 @@
+package WonderfulTiggers
+import SoundUtils
+import Simulate3dSound
+import TimerUtils
+import PTQConstants
+constant int abilityId = 'A00X'
+constant int BOUNCES_PER_LEVEL = 6
+constant SoundDefinition snd = new SoundDefinition("war3mapImported\\tiggerso.mp3", false)
+class WonderfulTiggers
+    unit caster
+    vec2 start
+    unit currentTarget
+    int remainingBounces
+    sound actualSound
+    real dmg
+    real totalDist
+    vec2 targetPos
+    boolean movingUp = true
+    int nTicks = 0
+    construct(unit caster, unit initialTarget)
+        this.caster = caster
+        this.start = caster.getPos()
+        this.currentTarget = initialTarget
+        this.remainingBounces = caster.getAbilityLevel(abilityId) * BOUNCES_PER_LEVEL + 3
+        this.dmg = caster.getAbilityLevel(abilityId) * 100.0 + 200
+        this.totalDist = start.distanceTo(currentTarget.getPos())
+
+
+    static function doWT(unit caster, unit target)
+        WonderfulTiggers wrapper = new WonderfulTiggers(caster, target)
+        timer t = getTimer()
+        t.setData(wrapper castTo int)
+        wrapper.actualSound = PTQUtils.playLocalSound(snd, caster.getPos(), 25)
+        PTQUtils.enableFlyingForUnit(caster)
+        caster.setPathing(false)
+        caster.setInvulnerable(true)
+        caster.setFlyHeight(600, 2000)
+        t.startPeriodic(.04, () -> begin
+            WonderfulTiggers s = (GetExpiredTimer().getData() castTo WonderfulTiggers)
+            if(s.doTick())
+                GetExpiredTimer().destr()
+        end)
+    function doTick() returns boolean
+        if(currentTarget != null)
+            targetPos = currentTarget.getPos()
+        nTicks++
+        vec2 t = caster.getPos().moveTowards(targetPos, 30)
+        caster.setPos(t.x, t.y)
+        real dist = caster.getPos().distanceTo(targetPos)
+        real height = caster.getFlyHeight()
+        if( dist < 50 and height <= 1.0 and not movingUp and nTicks > 16)
+            return nextBounce()
+        else
+            if(movingUp and caster.getPos().distanceTo(targetPos) < totalDist / 2 and height > 300 and nTicks > 8)
+                caster.setFlyHeight(0, 1000)
+                movingUp = false
+        return false
+
+    function nextBounce() returns boolean
+        nTicks = 0
+        if(gg_snd_WoodHeavyBashWood1.isPlaying())
+            gg_snd_WoodHeavyBashWood1.stop(false, false)
+        PlaySoundAtPointBJ(gg_snd_WoodHeavyBashWood1, 100, PTQUtils.vec2ToLoc(caster.getPos()), 0)
+        if(currentTarget == null)
+            caster.setFlyHeight(0, 1000)
+            actualSound.stop(false, true)
+            caster.setPathing(true)
+            caster.setInvulnerable(false)
+            return true
+        else
+            movingUp = true
+            remainingBounces--
+            caster.damageTarget(currentTarget, dmg)
+            if(remainingBounces < 0)
+                targetPos = start
+                currentTarget = null
+            else
+                group g = GetUnitsInRangeOfLocMatching(500, Location(targetPos.x, targetPos.y), Condition(() -> (begin
+                    return GetFilterUnit().getOwner().isEnemyOf(Player(10)) and GetFilterUnit().isAlive()
+                end)))
+                currentTarget = g.getRandomUnit()
+                if(currentTarget == null)
+                    return nextBounce()
+                targetPos = currentTarget.getPos()
+                g.destr()
+            caster.setFlyHeight(400, 1000)
+            caster.setFacing(caster.getPos().angleTo(targetPos))
+        return false
+
+init
+    trigger t = CreateTrigger()
+    t.registerAnyUnitEvent(EVENT_PLAYER_UNIT_SPELL_EFFECT)
+    t.addCondition(Condition(() -> GetSpellAbilityId() == abilityId))
+    t.addAction(() -> WonderfulTiggers.doWT(GetSpellAbilityUnit(), GetSpellTargetUnit()))

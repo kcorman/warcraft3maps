@@ -1,0 +1,13 @@
+package Rutabaga
+
+int RUTABAGA_AOE_DMG = 'A012'
+int RUTABAGA_UNIT = 'n00C'
+int SUMMON_RUTABAGA_ABILITY = 'A00W'
+
+init
+    trigger t = CreateTrigger()
+    t.registerAnyUnitEvent(EVENT_PLAYER_UNIT_SUMMON)
+    t.addCondition(Condition(() -> GetSummonedUnit().getTypeId() == RUTABAGA_UNIT))
+    t.addAction(() -> begin
+        SetUnitAbilityLevel(GetSummonedUnit(), RUTABAGA_AOE_DMG, GetUnitAbilityLevel(GetSummoningUnit(), SUMMON_RUTABAGA_ABILITY))
+    end)

@@ -1,0 +1,26 @@
+package Carrot
+import PTQConstants
+int DUMMY_CARROT_UNIT = 'e003'
+int CARROT_HEAL = 'A010'
+int SUMMON_CARROT = 'A00Y'
+init
+    trigger t = CreateTrigger()
+    t.registerAnyUnitEvent(EVENT_PLAYER_UNIT_SUMMON)
+    t.addCondition(Condition(() -> GetSummonedUnit().getTypeId() == DUMMY_CARROT_UNIT))
+    t.addAction(() -> begin
+        SetUnitOwner(GetSummonedUnit(), Player(11), false)
+        SetUnitAbilityLevel(GetSummonedUnit(), CARROT_HEAL, GetUnitAbilityLevel(GetSummoningUnit(), SUMMON_CARROT))
+    end)
+
+    t = CreateTrigger()
+    t.registerAnyUnitEvent(EVENT_PLAYER_UNIT_ATTACKED)
+    t.addCondition(Condition(() -> GetAttacker().getTypeId() == DUMMY_CARROT_UNIT))
+    t.addAction(() -> begin
+        GetAttacker().issueImmediateOrder("stop")
+        if(GetAttackedUnitBJ().getHP() < GetAttackedUnitBJ().getMaxHP() * 0.95)
+            GetAttackedUnitBJ().setHP(GetAttackedUnitBJ().getHP() + GetUnitAbilityLevel(GetAttacker(), CARROT_HEAL) * 150 + 50)
+            if(gg_snd_Cannibalize.isPlaying())
+                gg_snd_Cannibalize.stop(false, false)
+            PlaySoundAtPointBJ(gg_snd_Cannibalize, 100, PTQUtils.vec2ToLoc(GetAttackedUnitBJ().getPos()),0)
+            RemoveUnit(GetAttacker())
+    end)

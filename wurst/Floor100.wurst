@@ -1,0 +1,65 @@
+package Floor100
+import SoundUtils
+import PTQConstants
+import TimerUtils
+constant FLOOR_100 = 'A00N'
+constant HELLIVATOR_UNIT_ID = 'h004'
+constant SoundDefinition floor100snd = new SoundDefinition("war3mapImported\\Floor100.mp3", false)
+
+class Floor100
+    unit caster
+    unit hellivator
+    group affectedUnits
+    int abilityLvl
+
+    construct(unit caster)
+        this.caster = caster
+        this.abilityLvl = caster.getAbilityLevel(FLOOR_100)
+        timer t = getTimer()
+        t.setData(this castTo int)
+        t.start(2, () -> begin
+            Floor100 f = (GetExpiredTimer().getData() castTo Floor100)
+            f.startHellivator()
+        end)
+
+    function startHellivator()
+        floor100snd.playOnPoint(caster.getPos3Real())
+        affectedUnits = GetUnitsInRangeOfLocAll(abilityLvl * 200.0, GetUnitLoc(caster))
+        hellivator = CreateUnit(caster.getOwner(), HELLIVATOR_UNIT_ID, caster.getX(), caster.getY(), 0)
+        for unit u in affectedUnits
+            u.hide()
+            u.setInvulnerable(true)
+            u.pause()
+        timer t = getTimer()
+        PTQUtils.enableFlyingForUnit(hellivator)
+        hellivator.setFlyHeight(800, 800)
+        t.setData(this castTo int)
+        t.start(2, () -> begin
+            Floor100 f = (GetExpiredTimer().getData() castTo Floor100)
+            f.dropHellivator()
+        end)
+    
+    function dropHellivator()
+        timer t = getTimer()
+        hellivator.setFlyHeight(0, 800 * 4.0)
+        t.setData(this castTo int)
+        t.start(.25, () -> begin
+            Floor100 f = (GetExpiredTimer().getData() castTo Floor100)
+            f.endHellivator()
+        end)
+    function endHellivator()
+        hellivator.kill()
+        for unit u in affectedUnits
+            u.unpause()
+            u.show()
+            u.setInvulnerable(false)
+            if(u != caster)
+                caster.damageTarget(u, abilityLvl * 400.0 + 200)
+        destroy this
+    static function onCast(unit caster)
+        new Floor100(caster)
+init
+    trigger t = CreateTrigger()
+    t.registerAnyUnitEvent(EVENT_PLAYER_UNIT_SPELL_ENDCAST)
+    t.addCondition(Condition(() -> GetSpellAbilityId() == FLOOR_100))
+    t.addAction(() -> Floor100.onCast(GetSpellAbilityUnit()))

@@ -1,0 +1,51 @@
+package telek
+import TimerUtils
+
+class Telek
+    unit caster
+    unit wisp
+    unit target
+    real oldHeight
+    int ticks
+    int spellLvl
+    timer t
+
+    construct(unit caster, unit target, int spellLvl)
+        this.caster = caster
+        this.target = target
+        target.addAbility('Amrf')
+        target.removeAbility('Amrf')
+        this.spellLvl = spellLvl
+        oldHeight = target.getFlyHeight()
+        print("Unit id = " + UnitId("e002").toString())
+        print("caster = " + caster.getName())
+        print("target = " + target.getName())
+        wisp = CreateUnit(caster.getOwner(), 'e002', target.getX(), target.getY(), target.getFacing())
+        wisp.setFlyHeight(200, 200)
+        print("Created unit: " + wisp.getName())
+        ticks = spellLvl * 50
+        SelectUnitForPlayerSingle(wisp, caster.getOwner())
+        t = getTimer()
+        t.setData(this castTo int)
+        
+        t.startPeriodic(0.04, () -> begin
+            Telek val = (GetExpiredTimer().getData() castTo Telek)
+            val.target.setPosFly(val.wisp.getPos3Fly())
+            val.ticks--
+            if(val.ticks <= 0)
+                print("Paused timer")
+                GetExpiredTimer().pause()
+                val.wisp.remove()
+                val.target.setFlyHeight(val.oldHeight, 800)
+        end)
+
+    static function start()
+        new Telek(GetSpellAbilityUnit(), GetSpellTargetUnit(), GetUnitAbilityLevel(GetSpellAbilityUnit(), GetSpellAbilityId()))
+
+init
+    trigger t = CreateTrigger()
+    
+    TriggerRegisterAnyUnitEventBJ(t, EVENT_PLAYER_UNIT_SPELL_CAST)
+    t.addCondition(Condition(() -> GetSpellAbilityId() == 'A00D'))
+    TriggerAddAction(t, function Telek.start)
+    

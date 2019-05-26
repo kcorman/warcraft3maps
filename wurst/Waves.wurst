@@ -1,0 +1,234 @@
+package Waves
+import LinkedList
+import TimerUtils
+import GameInit
+constant player GoodGusy = Player(10)
+constant player BadGuy = Player(11)
+constant int NUM_WAVES = 13
+constant int FOOTMAN = 'hfoo'
+constant int SORCERESS = 'hsor'
+constant int GHOUL = 'ugho'
+constant int BIG_GOOL = 'u005'
+constant int GOST = 'n008'
+constant int GHOST_GOLEM = 'n009'
+constant int NECRO = 'unec'
+constant int STARCHES = 'u003'
+constant int ZOMBIE = 'n00A'
+constant int ZOMBIEMANCER = 'u002'
+constant int FOOTPERSON = 'h007'
+constant int BOMBERMAN = 'h008'
+constant int MEAT_WAGON = 'umtw'
+constant int MEAT_WAGON_WAGON = 'u007'
+
+constant int TAVERN_TYPE = 'n006'
+constant int KEEP_TYPE = 'h005'
+constant int GOOD_NEXUS_TYPE = 'h003'
+constant int BAD_NEXUS_TYPE = 'n002'
+constant int VILLAGER = 'u000'
+constant int INITIAL_GOLD = 9001
+constant int INITIAL_WOOD = 200
+constant int UNIT_TRAINER_ABILITY = 'A00P'
+constant rect BAD_GUY_01 = gg_rct_LandBad01
+constant rect BAD_GUY_02 = gg_rct_LandBad02 
+
+int currentWaveIndex = 0
+LinkedList<Wave> waves = null
+timerdialog timerDialog
+Wave currentWave
+class Wave
+    LinkedList<UnitAndAmount> units
+    LinkedList<unit> actualUnits
+    boolean val = true
+    construct(LinkedList<UnitAndAmount> units)
+        this.units = units
+    
+    function spawn()
+        currentWave = this
+        actualUnits = new LinkedList<unit>
+        for UnitAndAmount amt in units
+            for i = 0 to amt.relativeAmount
+                actualUnits.add(CreateUnit(BadGuy, amt.typ,BAD_GUY_01.getCenterX(), BAD_GUY_01.getCenterY(), 0))
+                if (not amt.boss)
+                    actualUnits.add(CreateUnit(BadGuy, amt.typ,BAD_GUY_02.getCenterX(), BAD_GUY_02.getCenterY(), 0))
+        timer orderUnits = getTimer()
+        orderUnits.setData(this castTo int)
+        orderUnits.startPeriodic(15, () -> (begin
+            Wave wave = (GetExpiredTimer().getData() castTo Wave)
+            wave.orderAttack()
+
+            boolean allDead = true
+            for unit u in wave.actualUnits
+                if(u.isAliveTrick() and u.getOwner() == Player(11))
+                    allDead = false
+
+            if allDead
+                print("Wave defeated")
+                wave.actualUnits.clear()
+                Utils.reviveAllheroes()
+                currentWaveIndex = currentWaveIndex + 1
+                startWave()
+                GetExpiredTimer().destr()
+                    
+        end))
+        orderAttack()
+    
+    function forceEnd()
+        for unit u in actualUnits
+            u.kill()
+
+    function orderAttack()
+        group g = GetUnitsOfPlayerMatching(BadGuy, Condition(() -> begin
+            return not GetFilterUnit().isType(UNIT_TYPE_STRUCTURE) and not GetFilterUnit().hasAbility(UNIT_TRAINER_ABILITY)
+        end))
+        for unit u in g
+            location l = GetUnitLoc(gg_unit_n000_0018)
+            real x = GetLocationX(l)
+            real y = GetLocationY(l)
+            vec2 vec = vec2(x,y)
+            u.issuePointOrder("attack", vec)
+        g.destr()
+
+function spawnGoodGusy()
+    group g = GetUnitsInRectMatching(gg_rct_trainingArea, Condition(() -> begin
+        return GetFilterUnit().getOwner().isAllyOf(GoodGusy) and GetFilterUnit().isAliveTrick() and 
+            not GetFilterUnit().isType(UNIT_TYPE_MECHANICAL) and not GetFilterUnit().isType(UNIT_TYPE_HERO)
+            and GetFilterUnit().getTypeId() != 'u000'
+    end))
+    for unit u in g
+        vec2 vec = gg_rct_helperArea.getCenter()
+        CreateUnit(GoodGusy, u.getTypeId(), vec.x, vec.y, 4)
+    g.destr()
+
+
+
+function startWave()
+    if(waves.size() >= currentWaveIndex or currentWaveIndex >= NUM_WAVES)
+        Utils.win()
+
+    spawnGoodGusy()
+    Wave wave = waves.get(currentWaveIndex)
+    timer startTimer = getTimer()
+    startTimer.setData(wave castTo int)
+    startTimer.start(10, () -> (begin
+            Wave wa = (GetExpiredTimer().getData() castTo Wave)
+            wa.spawn()
+            GetExpiredTimer().destr()
+    end))
+    if(timerDialog != null)
+        DestroyTimerDialog(timerDialog)
+    timerDialog = CreateTimerDialog(startTimer)
+    TimerDialogSetTitle(timerDialog, "Next Wave Starting In")
+    TimerDialogDisplay(timerDialog, true)
+
+function toList(vararg UnitAndAmount units) returns LinkedList<UnitAndAmount>
+    LinkedList<UnitAndAmount> result = new LinkedList<UnitAndAmount>
+    for UnitAndAmount u in units
+        result.add(u)
+    return result
+    
+
+class UnitAndAmount
+    int typ
+    int relativeAmount
+    bool boss
+
+    construct(int typ, int relative, bool boss)
+        this.typ = typ
+        this.relativeAmount = relative
+        this.boss = boss
+
+    construct(int typ, int relative)
+        this.typ = typ
+        this.relativeAmount = relative
+        this.boss = false
+    
+init
+
+
+    waves = new LinkedList<Wave>
+    
+    waves.add(new Wave(toList(
+        new UnitAndAmount(ZOMBIE, 5)
+    )))
+    waves.add(new Wave(toList(
+        new UnitAndAmount(ZOMBIE, 5),
+        new UnitAndAmount(GHOUL, 3)
+    )))
+    waves.add(new Wave(toList(
+        new UnitAndAmount(ZOMBIE, 7),
+        new UnitAndAmount(GHOUL, 5)
+    )))
+    waves.add(new Wave(toList(
+        new UnitAndAmount(ZOMBIE, 7),
+        new UnitAndAmount(GHOUL, 5),
+        new UnitAndAmount(MEAT_WAGON, 1),
+        new UnitAndAmount(BIG_GOOL, 1, false)
+    )))
+    waves.add(new Wave(toList(
+        new UnitAndAmount(ZOMBIE, 5),
+        new UnitAndAmount(GHOUL, 3),
+        new UnitAndAmount(GOST, 3),
+        new UnitAndAmount(BIG_GOOL, 1, false)
+    )))
+    waves.add(new Wave(toList(
+        new UnitAndAmount(ZOMBIE, 6),
+        new UnitAndAmount(GHOUL, 2),
+        new UnitAndAmount(BIG_GOOL, 3, false),
+        new UnitAndAmount(GOST, 4),
+        new UnitAndAmount(MEAT_WAGON, 1),
+        new UnitAndAmount(GHOST_GOLEM, 1)
+    )))
+    waves.add(new Wave(toList(
+        new UnitAndAmount(ZOMBIE, 5),
+        new UnitAndAmount(MEAT_WAGON, 1),
+        new UnitAndAmount(ZOMBIEMANCER, 2)
+    )))
+    waves.add(new Wave(toList(
+        new UnitAndAmount(GHOUL, 2),
+        new UnitAndAmount(BIG_GOOL, 3, false),
+        new UnitAndAmount(ZOMBIEMANCER, 2),
+        new UnitAndAmount(MEAT_WAGON, 1),
+        new UnitAndAmount(GHOST_GOLEM, 1)
+    )))
+    waves.add(new Wave(toList(
+        new UnitAndAmount(GHOUL, 2),
+        new UnitAndAmount(BIG_GOOL, 4, false),
+        new UnitAndAmount(ZOMBIEMANCER, 2),
+        new UnitAndAmount(MEAT_WAGON, 1),
+        new UnitAndAmount(GHOST_GOLEM, 1)
+    )))
+    waves.add(new Wave(toList(
+        new UnitAndAmount(ZOMBIE, 2),
+        new UnitAndAmount(ZOMBIEMANCER, 2),
+        new UnitAndAmount(MEAT_WAGON, 1),
+        new UnitAndAmount(GHOST_GOLEM, 1),
+        new UnitAndAmount(BIG_GOOL, 5, false)
+    )))
+    waves.add(new Wave(toList(
+        new UnitAndAmount(MEAT_WAGON_WAGON, 1),
+        new UnitAndAmount(BIG_GOOL, 5, false)
+    )))
+    waves.add(new Wave(toList(
+        new UnitAndAmount(MEAT_WAGON_WAGON, 3),
+        new UnitAndAmount(BIG_GOOL, 5, false)
+    )))
+    waves.add(new Wave(toList(
+        new UnitAndAmount(ZOMBIE, 5),
+        new UnitAndAmount(STARCHES, 1, true)
+    )))
+    waves.add(new Wave(toList(
+        new UnitAndAmount(FOOTPERSON, 3),
+        new UnitAndAmount(BOMBERMAN, 1)
+    )))
+    timer t = getTimer()
+    t.setData(waves castTo int)
+    t.start(10, () -> begin
+        LinkedList<Wave> waveses = (GetExpiredTimer().getData() castTo LinkedList<Wave>)
+        waveses.getFirst().spawn()
+        GetExpiredTimer().destr()
+    end)
+    trigger trig = CreateTrigger()
+    trig.registerPlayerChatEvent(Player(0), "next", false)
+    trig.addAction(() -> currentWave.forceEnd())
+
+    

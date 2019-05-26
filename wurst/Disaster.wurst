@@ -1,0 +1,57 @@
+package Disaster
+import HashMap
+import TimerUtils
+constant int unitType = 'n001'
+constant int abilityId = 'A00B'
+constant baseDamage = 10
+constant baseRange = 30
+constant initialSize = 2.5
+class DisasterTracker
+    unit dis
+    real curSize
+    int skillLvl
+    construct(unit dis, unit summoner)
+        this.dis = dis
+        this.skillLvl = summoner.getAbilityLevel(abilityId)
+        this.curSize = initialSize * skillLvl
+        dis.setOwner(Player((PLAYER_NEUTRAL_AGGRESSIVE)), true)
+        dis.setScale(curSize)
+        AddSpecialEffectTarget("UndeadLargeBuildingFire1.mdl", dis, "head")
+        print("skillLvl= " + skillLvl.toString())
+        print("summ= " + summoner.getName())
+        timer t = getTimer()
+        t.setData(this castTo int)
+        t.startPeriodic(1.0, () -> begin
+            DisasterTracker dt = (GetExpiredTimer().getData() castTo DisasterTracker)
+            dt.doDamage()
+            if(not dt.dis.isAliveTrick())
+                GetExpiredTimer().destr()
+        end)
+
+    function doDamage()
+        group targets = GetUnitsInRangeOfLocAll(100 + baseRange * curSize, GetUnitLoc(dis))
+        for unit u in targets
+            if u != dis
+                dis.damageTarget(u, skillLvl * curSize * baseDamage)
+        targets.destr()
+
+    function recordKill()
+        // print("Recording kill for size " + curSize.toString())
+        curSize+= 0.40
+        dis.setScale(curSize)
+        dis.setLife(dis.getLife() * 1.05)
+        dis.issuePointOrder("attack", gg_rct_BanditCamp.getCenter())
+
+    static HashMap<unit, DisasterTracker> trackers = new HashMap<unit, DisasterTracker>()
+    static function staticRecordKill(unit killer)
+        trackers.get(killer).recordKill()
+init
+    trigger t = CreateTrigger()
+    t.registerAnyUnitEvent(EVENT_PLAYER_UNIT_DEATH)
+    t.addCondition(Condition(() -> GetKillingUnit().getTypeId() == unitType))
+    t.addAction(() -> DisasterTracker.staticRecordKill(GetKillingUnit()))
+
+    trigger t2 = CreateTrigger()
+    t2.registerAnyUnitEvent(EVENT_PLAYER_UNIT_SUMMON)
+    t2.addCondition(Condition(() -> GetSummonedUnit().getTypeId() == unitType))
+    t2.addAction(() -> DisasterTracker.trackers.put(GetSummonedUnit(), new DisasterTracker(GetSummonedUnit(), GetSummoningUnit())))

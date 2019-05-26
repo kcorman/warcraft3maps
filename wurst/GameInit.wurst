@@ -1,0 +1,189 @@
+package GameInit
+import LinkedList
+import HashMap
+import TimerUtils
+constant int FOOTMAN = 'hfoo'
+constant int SORCERESS = 'hsor'
+constant int GHOUL = 'ugho'
+constant int NECRO = 'unec'
+constant int TAVERN_TYPE = 'n006'
+constant int KEEP_TYPE = 'h005'
+constant int GOOD_NEXUS_TYPE = 'h003'
+constant int BAD_NEXUS_TYPE = 'n002'
+constant int VILLAGER = 'u000'
+constant int INITIAL_GOLD = 9001
+constant int INITIAL_WOOD = 200
+constant int UNIT_TRAINER_ABILITY = 'A00P'
+constant unit THE_BANDIT = gg_unit_n000_0018
+constant rect BanditCamp = gg_rct_BanditCamp
+constant LinkedList<unit> playerHeroes = new LinkedList<unit>
+
+class FriendlyStuff
+    player cpu
+    unit tavern
+    unit fountain
+    unit nexus
+    unit enemyNexus
+    LinkedList<unit> keeps
+    LinkedList<unit> knownUnits = new LinkedList<unit>
+
+    construct(player cpu, boolean good)
+        this.cpu = cpu
+        if(good) 
+            this.nexus = Utils.getOwnedUnitOfType(cpu, GOOD_NEXUS_TYPE)
+        else
+            this.nexus = Utils.getOwnedUnitOfType(cpu, BAD_NEXUS_TYPE)
+        this.tavern = Utils.getOwnedUnitOfType(cpu, TAVERN_TYPE)
+        this.keeps = Utils.getOwnedUnitsOfType(cpu, KEEP_TYPE)
+        for unit keep in keeps
+            if(good)
+                createUnitSpawner(FOOTMAN, keep)
+                createUnitSpawner(FOOTMAN, keep)
+                createUnitSpawner(FOOTMAN, keep)
+                createUnitSpawner(SORCERESS, keep)
+            else
+                createUnitSpawner(GHOUL, keep)
+                createUnitSpawner(GHOUL, keep)
+                createUnitSpawner(GHOUL, keep)
+                createUnitSpawner(NECRO, keep)
+
+    function createUnitSpawner(int unitType, unit keep)
+        unit u = createUnit(keep.getOwner(),unitType, keep.getPos(), angle(0))
+        u.addAbility(UNIT_TRAINER_ABILITY)
+
+    function getTemplateUnitsForKeep(unit keep) returns group
+        group g = GetUnitsInRangeOfLocMatching(600, Location(keep.getX(), keep.getY()), Condition(() -> (begin
+            return GetFilterUnit().hasAbility(UNIT_TRAINER_ABILITY)
+        end)))
+        return g
+
+    function doSpawn()
+        for unit keep in keeps
+            group g = getTemplateUnitsForKeep(keep)
+            print("Found " + g.size().toString() + " template units ")
+            for unit u in g
+                createUnit(cpu, u.getTypeId(), keep.getPos(), angle(0))
+            g.destr()
+    function doOrderUnits()
+        group g = GetUnitsOfPlayerMatching(cpu, Condition(() -> begin
+            return not GetFilterUnit().isType(UNIT_TYPE_STRUCTURE) and not GetFilterUnit().hasAbility(UNIT_TRAINER_ABILITY)
+        end))
+        for unit u in g
+            u.issuePointOrder("attack", enemyNexus.getPos())
+        g.destr()
+
+    function startSpawners()
+        timer spawn = getTimer()
+        spawn.setData(this castTo int)
+        spawn.startPeriodic(15, () -> (begin
+            FriendlyStuff fs = (GetExpiredTimer().getData() castTo FriendlyStuff)
+            fs.doSpawn()
+            fs.doOrderUnits()
+            print("Spawned and ordered units")
+        end))
+
+public class Utils
+    // i don't know how to properly iterate Wurst arrays, so here's a nice linked list instead
+    static LinkedList<player> allPlayers = new LinkedList<player>
+    static FriendlyStuff goodGusy
+    static FriendlyStuff badGusy
+    static HashMap<player, FriendlyStuff> friendlies = new HashMap<player, FriendlyStuff>
+    
+    static function buyHero(unit hero)
+        // unit tavern = friendlies.get(hero.getOwner()).tavern
+        playerHeroes.add(hero)
+
+    static function win()
+        force f = GetPlayersAllies(GetDyingUnit().getOwner())
+            
+        f.forEach(() -> begin
+            CustomVictoryBJ(GetEnumPlayer(), true, true)
+        end)
+    static function reviveAllheroes()
+        for hero in playerHeroes
+            hero.revive(BanditCamp.getCenter(), true)
+            hero.setHP(hero.getMaxHP())
+            hero.setMana(hero.getMaxMana())
+    static function getOwnedUnitOfType(player onwer, int typ) returns unit
+        group g = GetUnitsOfTypeIdAll(typ)
+        unit result = null
+        for unit u in g
+            if(u.getOwner() == onwer)
+                result = u
+                break
+        g.destr()
+        return result
+    
+    static function getOwnedUnitsOfType(player owner, int typ) returns LinkedList<unit>
+        LinkedList<unit> result = new LinkedList<unit>
+        group g = GetUnitsOfTypeIdAll(typ)
+        for unit u in g
+            if(u.getOwner() == owner)
+                result.add(u)
+        g.destr()
+        return result
+
+    static function getFriendlyUnitOfType(player friend, int typ) returns unit
+        group g = GetUnitsOfTypeIdAll(typ)
+        unit result = null
+        for unit u in g
+            if(u.getOwner().isAllyOf(friend))
+                result = u
+                break
+        g.destr()
+        return result
+
+init
+    SetCameraBoundsToRect(gg_rct_PlayableArea)
+    int i = 0
+    while(i < 12)
+            Utils.allPlayers.add(players[i])
+            i++
+    
+    Utils.goodGusy = new FriendlyStuff(Player(10), true)
+    Utils.badGusy = new FriendlyStuff(Player(11), false)
+    Utils.goodGusy.enemyNexus = Utils.badGusy.nexus
+    Utils.badGusy.enemyNexus = Utils.goodGusy.nexus
+    //Utils.goodGusy.startSpawners()
+    //Utils.badGusy.startSpawners()
+    for player p in Utils.allPlayers
+        if(p.isAllyOf(Utils.goodGusy.cpu))
+            Utils.friendlies.put(p, Utils.goodGusy)
+        else
+            Utils.friendlies.put(p, Utils.badGusy) 
+        FriendlyStuff fs = Utils.friendlies.get(p)
+        createUnit(p, VILLAGER, fs.tavern.getPos() + vec2(0, 200), angle(0))
+        p.addGold(INITIAL_GOLD)
+        p.addLumber(INITIAL_WOOD)
+
+            
+    ModifyGateBJ( bj_GATEOPERATION_OPEN, gg_dest_LTe3_0494 )
+    LinkedList<unit> taverns = new LinkedList<unit>
+    taverns.add(Utils.goodGusy.tavern)
+    taverns.add(Utils.badGusy.tavern)
+    trigger t = CreateTrigger()
+    t.registerAnyUnitEvent(EVENT_PLAYER_UNIT_SELL)
+    t.addCondition(Condition(() -> IsUnitType(GetSoldUnit(), UNIT_TYPE_HERO)))
+    t.addAction(() -> Utils.buyHero(GetSoldUnit()))
+
+    t = CreateTrigger()
+    t.registerAnyUnitEvent(EVENT_PLAYER_UNIT_DEATH)
+    t.addCondition(Condition(() -> GetOwningPlayer(GetDyingUnit()) == Player(11)))
+    t.addAction(() -> begin
+        force f =GetPlayersAllies(GetKillingUnit().getOwner())
+        f.forEach(() -> begin
+            GetEnumPlayer().addGold(GetDyingUnit().getLevel() * 10)
+        end)
+    end)
+
+    t = CreateTrigger()
+    t.registerAnyUnitEvent(EVENT_PLAYER_UNIT_DEATH)
+    t.addCondition(Condition(() -> GetDyingUnit() == THE_BANDIT))
+    t.addAction(() -> begin
+        force f = GetPlayersAllies(GetDyingUnit().getOwner())
+        
+        f.forEach(() -> begin
+            CustomDefeatBJ(GetEnumPlayer(), "Fin")
+        end)
+    end)
+

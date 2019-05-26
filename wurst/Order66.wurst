@@ -1,0 +1,69 @@
+package Order66
+import LinkedList
+import HashMap
+import SoundUtils
+
+constant int TAG_UNIT = 'A00G'
+constant int CONVERT_UNITS = 'A00H'
+constant int TRAGEDY = 'A00F'
+constant player GoodGusy = Player(10)
+
+constant SoundDefinition order66Sound = new SoundDefinition("war3mapImported\\ExecuteOrder66.mp3", false)
+constant SoundDefinition tragedySound = new SoundDefinition("war3mapImported\\Tragedy.mp3", false)
+
+class Order66Tracker
+    static HashMap<unit, Order66Tracker> trackers = new HashMap<unit, Order66Tracker>
+    LinkedList<unit> convertedUnits
+    unit caster
+    int skillLvl
+    construct(unit caster)
+        this.caster = caster
+        skillLvl = 1
+        convertedUnits = new LinkedList<unit>()
+
+    static function initTracker(unit caster)
+        caster.addAbility(CONVERT_UNITS)
+        if(trackers.has(caster))
+            trackers.get(caster).skillLvl++
+        else
+            trackers.put(caster, new Order66Tracker(caster))
+    
+    static function recordTagCast(unit caster, unit target)
+        trackers.get(caster).convertedUnits.add(target)
+
+    static function doConvert(unit caster)
+        Order66Tracker tracker = trackers.get(caster)
+        for unit u in tracker.convertedUnits
+            u.setOwner(GoodGusy, false)
+        order66Sound.playOnPoint(caster.getPos3Real())
+        tracker.convertedUnits.clear()
+
+    static function doTragedyCast(unit caster)
+        tragedySound.playOnPoint(caster.getPos3Real())
+init
+    trigger t = CreateTrigger()
+    t.registerAnyUnitEvent(EVENT_PLAYER_HERO_SKILL)
+    t.addCondition(Condition(() -> GetLearnedSkill() == TAG_UNIT))
+    t.addAction(() -> Order66Tracker.initTracker(GetLearningUnit()))
+
+    t = CreateTrigger()
+    t.registerAnyUnitEvent(EVENT_PLAYER_UNIT_SPELL_EFFECT)
+    t.addCondition(Condition(() -> GetSpellAbilityId() == TAG_UNIT))
+    t.addAction(() -> Order66Tracker.recordTagCast(GetSpellAbilityUnit(), GetSpellTargetUnit()))
+
+    t = CreateTrigger()
+    t.registerAnyUnitEvent(EVENT_PLAYER_UNIT_SPELL_EFFECT)
+    t.addCondition(Condition(() -> GetSpellAbilityId() == CONVERT_UNITS))
+    t.addAction(() -> Order66Tracker.doConvert(GetSpellAbilityUnit()))
+
+    t = CreateTrigger()
+    t.registerAnyUnitEvent(EVENT_PLAYER_UNIT_SPELL_CAST)
+    t.addCondition(Condition(() -> GetSpellAbilityId() == TAG_UNIT and GetUnitLevel(GetSpellTargetUnit()) > 5))
+    t.addAction(() -> IssueImmediateOrder(GetSpellAbilityUnit(), "stop"))
+
+    t = CreateTrigger()
+    t.registerAnyUnitEvent(EVENT_PLAYER_UNIT_SPELL_EFFECT)
+    t.addCondition(Condition(() -> GetSpellAbilityId() == TRAGEDY))
+    t.addAction(() -> Order66Tracker.doTragedyCast(GetSpellAbilityUnit()))
+    
+

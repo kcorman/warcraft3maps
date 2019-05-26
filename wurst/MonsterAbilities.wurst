@@ -1,0 +1,7 @@
+package MonsterAbilities
+constant int MEAT_WAGON = 'umtw'
+init
+    trigger t = CreateTrigger()
+    t.registerAnyUnitEvent(EVENT_PLAYER_UNIT_SUMMON)
+    t.addCondition(Condition(() -> GetSummonedUnit().getTypeId() == MEAT_WAGON))
+    t.addAction(() -> ReplaceUnitBJ(GetSummonedUnit(), MEAT_WAGON, bj_UNIT_STATE_METHOD_DEFAULTS))

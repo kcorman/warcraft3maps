@@ -1,0 +1,29 @@
+package PTQConstants
+import SoundUtils
+import Simulate3dSound
+import TimerUtils
+public constant CROW_FORM = 'Amrf'
+public constant LOCUST = 'Aloc'
+
+public interface DelayedEffect
+    function run()
+
+public class PTQUtils
+    static function enableFlyingForUnit(unit u)
+        u.addAbility(CROW_FORM)
+        u.removeAbility(CROW_FORM)
+    static function vec2ToLoc(vec2 vec) returns location
+        return Location(vec.x, vec.y)
+    static function makeUnitUnTargetable(unit u)
+        u.addAbility(LOCUST)
+    static function playLocalSound(SoundDefinition snd, vec2 pos, int recycleDuration) returns sound
+        sound s = snd.play(recycleDuration).snd
+        bindSoundToPoint(s, pos.x, pos.y, 400,800, 15000)
+        return s
+    static function delayedEffect(real delay, DelayedEffect eff)
+        timer t = getTimer()
+        t.setData(eff castTo int)
+        t.start(delay, () -> (begin
+            DelayedEffect sa = (GetExpiredTimer().getData() castTo DelayedEffect)
+            GetExpiredTimer().destr()
+        end))
