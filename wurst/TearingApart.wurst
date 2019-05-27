@@ -1,37 +1,28 @@
 package TearingApart
 import TimerUtils
 import PTQConstants
+import ClosureTimers
+import ClosureEvents
 import SoundUtils
 
 constant SoundDefinition snd = new SoundDefinition("war3mapImported\\TearingMeApartLisa.mp3", false)
 int ABILITY_ID = 'A00A'
 
-class UnitWrapper
-    unit u
-    construct(unit u)
-        this.u = u
 init
-    trigger t = CreateTrigger()
-    t.registerAnyUnitEvent(EVENT_PLAYER_HERO_SKILL)
-    t.addCondition(Condition(() -> GetLearnedSkill() == ABILITY_ID))
-    t.addAction(() -> begin
-        TriggerSleepAction(.5)
-        BlzUnitDisableAbility(GetLearningUnit(), ABILITY_ID, true, false)
-    end)
     
-    t = CreateTrigger()
-    t.registerAnyUnitEvent(EVENT_PLAYER_UNIT_ATTACKED)
-    t.addCondition(Condition(() -> GetAttackedUnitBJ().getAbilityLevel(ABILITY_ID) > 0 and GetRandomInt(0, 10) > 9))
-    t.addAction(() -> begin
-        BlzUnitDisableAbility(GetAttackedUnitBJ(), ABILITY_ID, false, false)
-        GetAttackedUnitBJ().issueImmediateOrder("mirrorimage")
-    end)
+    EventListener.add(EVENT_PLAYER_HERO_SKILL) () ->
+        if(GetLearnedSkill() == ABILITY_ID)
+            doAfter(.5) () -> 
+                BlzUnitDisableAbility(GetLearningUnit(), ABILITY_ID, true, false)
 
-    t = CreateTrigger()
-    t.registerAnyUnitEvent(EVENT_PLAYER_UNIT_SPELL_EFFECT)
-    t.addCondition(Condition(() -> GetSpellAbilityId() == ABILITY_ID))
-    t.addAction(() -> begin
-        PTQUtils.playLocalSound(snd, GetSpellAbilityUnit().getPos(), 5)
-        TriggerSleepAction(.5)
-        BlzUnitDisableAbility(GetSpellAbilityUnit(), ABILITY_ID, true, false)
-    end)
+    EventListener.add(EVENT_PLAYER_UNIT_ATTACKED) () ->
+        if(GetAttackedUnitBJ().getAbilityLevel(ABILITY_ID) > 0 and GetRandomInt(0, 10) > 9)
+            BlzUnitDisableAbility(GetAttackedUnitBJ(), ABILITY_ID, false, false)
+            GetAttackedUnitBJ().issueImmediateOrder("mirrorimage")
+
+    EventListener.add(EVENT_PLAYER_UNIT_SPELL_EFFECT) () ->
+        if(GetSpellAbilityId() == ABILITY_ID)
+            let u = GetSpellAbilityUnit()
+            PTQUtils.playLocalSound(snd, u.getPos(), 5)
+            doAfter(1.0) () -> 
+                BlzUnitDisableAbility(u, ABILITY_ID, true, false)

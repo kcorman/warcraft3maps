@@ -12,6 +12,6 @@ init
     t.addAction(() -> begin
         sound s = snd.play().snd
         bindSoundToPoint(s, GetSpellTargetUnit().getPos().x, GetSpellTargetUnit().getPos().y, 400,800, 15000)
-        Knockback3.add(GetSpellTargetUnit(), GetSpellTargetUnit().getPos().moveTowards(GetSpellAbilityUnit().getPos(), -500), 1000)
+        // Knockback3.add(GetSpellTargetUnit(), GetSpellTargetUnit().getPos().moveTowards(GetSpellAbilityUnit().getPos(), -300), 600)
         // Knockback3.add(GetSpellTargetUnit(), 100, GetSpellAbilityUnit().getFacingAngle(), angle(0))
     end)
