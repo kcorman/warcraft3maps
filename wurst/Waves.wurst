@@ -1,5 +1,5 @@
 package Waves
-import LinkedList
+/*import LinkedList
 import TimerUtils
 import GameInit
 constant player GoodGusy = Player(10)
@@ -231,4 +231,4 @@ init
     trig.registerPlayerChatEvent(Player(0), "next", false)
     trig.addAction(() -> currentWave.forceEnd())
 
-    
+    */

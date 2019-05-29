@@ -1,0 +1,254 @@
+package Waves2
+import LinkedList
+import TimerUtils
+import GameInit
+
+constant player GoodGusy = Player(10)
+constant player BadGuy = Player(11)
+constant int FOOTMAN = 'hfoo'
+constant int SORCERESS = 'hsor'
+constant int GHOUL = 'ugho'
+constant int BIG_GOOL = 'u005'
+constant int GOST = 'n008'
+constant int GHOST_GOLEM = 'n009'
+constant int GENERAL_SPIDER = 'u006'
+constant int NECRO = 'unec'
+constant int STARCHES = 'u003'
+constant int ZOMBIE = 'n00A'
+constant int SKELETON_PRIEST = 'u00D'
+constant int OBSIDIAN_STATUTE = 'u00E'
+constant int ZOMBIEMANCER = 'u002'
+constant int FOOTPERSON = 'h007'
+constant int BOMBERMAN = 'h008'
+constant int MEAT_WAGON = 'umtw'
+constant int MEAT_WAGON_WAGON = 'u007'
+constant int INITIAL_GOLD = 9001
+constant int INITIAL_WOOD = 200
+constant int UNIT_TRAINER_ABILITY = 'A00P'
+constant rect BAD_GUY_01 = gg_rct_LandBad01
+constant rect BAD_GUY_02 = gg_rct_LandBad02 
+
+timerdialog timerDialog
+Wave currentWave
+WaveFactory waveFactory
+int currentWaveIndex = 1
+
+
+enum BadGuyType
+    ATTACKER
+    SUPPORT
+    BOSS
+
+class BadguyDef
+    BadGuyType bgType
+    real baseLevel
+    int typ
+    construct(BadGuyType bgType, real baseLevel, int typ)
+        this.bgType = bgType
+        this.baseLevel = baseLevel
+        this.typ = typ
+
+class BadGuyCount
+    BadguyDef def
+    int count
+    construct(BadguyDef def, int count)
+        this.def = def
+        this.count = count
+
+class Wave
+    real totalPower
+    int level
+    LinkedList<BadGuyCount> defsAndCounts
+    LinkedList<unit> units
+    construct(LinkedList<BadGuyCount> defsAndCounts, real totalPower, int level)
+        this.defsAndCounts = defsAndCounts
+        this.totalPower = totalPower
+        this.level = level
+    
+    function spawn()
+        currentWave = this
+        print("Spawning wave")
+        units = new LinkedList<unit>
+        for BadGuyCount amt in defsAndCounts
+            for i = 1 to amt.count
+                units.add(CreateUnit(BadGuy, amt.def.typ,BAD_GUY_01.getCenterX(), BAD_GUY_01.getCenterY(), 0))
+                units.add(CreateUnit(BadGuy, amt.def.typ,BAD_GUY_02.getCenterX(), BAD_GUY_02.getCenterY(), 0))
+        timer orderUnits = getTimer()
+        orderUnits.setData(this castTo int)
+        orderUnits.startPeriodic(15, () -> (begin
+            Wave wave = (GetExpiredTimer().getData() castTo Wave)
+            wave.orderAttack()
+    
+            boolean allDead = true
+            for unit u in wave.units
+                if(u.isAliveTrick() and u.getOwner() == Player(11))
+                    allDead = false
+    
+            if allDead
+                print("Wave defeated")
+                wave.units.clear()
+                Utils.reviveAllheroes()
+                currentWaveIndex++
+                startWave()
+                GetExpiredTimer().destr()
+                        
+        end))
+        orderAttack()
+        
+    function forceEnd()
+        for unit u in units
+            u.kill()
+    
+    function orderAttack()
+        group g = GetUnitsOfPlayerMatching(BadGuy, Condition(() -> begin
+            return not GetFilterUnit().isType(UNIT_TYPE_STRUCTURE) and not GetFilterUnit().hasAbility(UNIT_TRAINER_ABILITY)
+        end))
+        for unit u in g
+            location l = GetUnitLoc(gg_unit_n000_0018)
+            real x = GetLocationX(l)
+            real y = GetLocationY(l)
+            vec2 vec = vec2(x,y)
+            u.issuePointOrder("attack", vec)
+        g.destr()
+
+function spawnGoodGusy()
+    group g = GetUnitsInRectMatching(gg_rct_trainingArea, Condition(() -> begin
+        return GetFilterUnit().getOwner().isAllyOf(GoodGusy) and GetFilterUnit().isAliveTrick() and 
+            not GetFilterUnit().isType(UNIT_TYPE_MECHANICAL) and not GetFilterUnit().isType(UNIT_TYPE_HERO)
+            and GetFilterUnit().getTypeId() != 'u000'
+    end))
+    for unit u in g
+        vec2 vec = gg_rct_helperArea.getCenter()
+        CreateUnit(GoodGusy, u.getTypeId(), vec.x, vec.y, 4)
+    g.destr()
+        
+        
+        
+function startWave()
+    if(currentWaveIndex >= 20)
+        Utils.win()
+        
+    spawnGoodGusy()
+    var wave = waveFactory.createWave(currentWaveIndex)
+    timer startTimer = getTimer()
+    startTimer.setData(wave castTo int)
+    startTimer.start(10, () -> (begin
+        Wave wa = (GetExpiredTimer().getData() castTo Wave)
+        wa.spawn()
+        GetExpiredTimer().destr()
+    end))
+    if(timerDialog != null)
+        DestroyTimerDialog(timerDialog)
+    timerDialog = CreateTimerDialog(startTimer)
+    TimerDialogSetTitle(timerDialog, "Next Wave Starting In")
+    TimerDialogDisplay(timerDialog, true)
+
+class WaveFactory
+    constant real PERIOD_SLOW_DRIFT = 1.8 // the closer this is to 2, the more consistent the randoms on periods will be
+    constant real POWER_CHECK_BASE = .5
+    constant real POWER_CHECK_OSCILATING = .5
+    constant real MAX_SUPPORT_PERCENT = .4
+    constant int POWER_CHECK_PERIOD = 7
+    constant int NUM_SUPPORT_PERIOD = 5
+    constant int MAX_PER_WAVE = 40
+    constant int PERCENT_SUPPORT_PERIOD = 4
+    LinkedList<BadguyDef> attackerTypes = new LinkedList<BadguyDef>
+    LinkedList<BadguyDef> supportTypes = new LinkedList<BadguyDef>
+    LinkedList<BadguyDef> bossTypes = new LinkedList<BadguyDef>
+
+    function addBadguyDef(BadguyDef def)
+        if(def.bgType == ATTACKER)
+            addSorted(attackerTypes, def)
+        else if(def.bgType == BOSS)
+            addSorted(bossTypes, def)
+        else
+            addSorted(supportTypes, def)
+        
+    private function addSorted(LinkedList<BadguyDef> list, BadguyDef def)
+        LLIterator<BadguyDef> itr = list.iterator()
+        int index = 0
+        while(itr.hasNext())
+            if(itr.next().baseLevel < def.baseLevel)
+                break
+            index++
+        itr.close()
+        list.addAt(def, index)
+    
+    function createWave(int gameLevel) returns Wave
+        real totalPower = gameLevel * 10.
+        real powerCheck = getRepeatingRandom(POWER_CHECK_OSCILATING, POWER_CHECK_PERIOD, gameLevel) + POWER_CHECK_BASE
+        // pick the actual attackers
+        real percentAttackers = 1 - getRepeatingRandom(MAX_SUPPORT_PERCENT, PERCENT_SUPPORT_PERIOD, gameLevel)
+        real attackerMaxPower = totalPower * percentAttackers
+        print("Total power: " + totalPower.toString())
+        LinkedList<BadGuyCount> attackerDefsAndCounts = getBadGuyCountsFromList(attackerTypes, attackerMaxPower, powerCheck)
+        // now get any supports we need
+        real attackerActualPower = 0
+        for BadGuyCount bgc in attackerDefsAndCounts
+            attackerActualPower += bgc.count * bgc.def.baseLevel
+        real remainingPower = totalPower - attackerActualPower
+        
+        print("Attacker actual power: " + attackerActualPower.toString())
+        LinkedList<BadGuyCount> supportDefsAndCounts = getBadGuyCountsFromList(supportTypes, remainingPower, powerCheck)
+        real supportActualPower = 0
+        for BadGuyCount bgc in supportDefsAndCounts
+            print("Looking at " + bgc.count.toString() + " of " + bgc.def.typ.toString())
+            supportActualPower = supportActualPower + bgc.count * bgc.def.baseLevel
+        
+        print("Support actual power: " + supportActualPower.toString())
+        return new Wave(attackerDefsAndCounts..addAll(supportDefsAndCounts), attackerActualPower + supportActualPower, gameLevel)
+
+    private function getBadGuyCountsFromList(LinkedList<BadguyDef> list, real totalPower, real powerCheck) returns LinkedList<BadGuyCount>
+        var remainingPower = totalPower
+        // go through the list, find the strongest guy that we can make the max of without exceeding totalPower
+        LinkedList<BadGuyCount> result = new LinkedList<BadGuyCount>
+        LLIterator<BadguyDef> itr = list.iterator()
+        var total = 0
+        while(itr.hasNext())
+            BadguyDef def = itr.next()
+            if(def.baseLevel < remainingPower)
+                int maxCanGet = (totalPower / def.baseLevel).toInt()
+
+                // if we're already so far down the list that we'd meet or exceed the max, go ahead and add these
+                // otherwise check if we pass the randomCheck, and if so add them to the group
+                if((total + maxCanGet >= MAX_PER_WAVE) or GetRandomReal(0, 1) <= powerCheck or not itr.hasNext())
+                    int numToActuallyGet = (maxCanGet * GetRandomReal(.5, 1.2)).toInt() // we go a little above 1.0 because it doesnt really hurt
+                    if(numToActuallyGet > 0)
+                        remainingPower -= (numToActuallyGet * def.baseLevel)
+                        BadGuyCount e = new BadGuyCount(def, numToActuallyGet)
+                        total += numToActuallyGet
+                        result.add(e)
+                if(total >= MAX_PER_WAVE)
+                    break
+        return result
+
+    private function getRepeatingRandom(real magnitude, int period, int gameLevel) returns real
+        real adjustedPeriod = (gameLevel.toReal() / period.toReal()) * PERIOD_SLOW_DRIFT * PI
+        return (Sin(adjustedPeriod) + 1) * magnitude
+
+init
+    WaveFactory fact = new WaveFactory()
+    fact.addBadguyDef(new BadguyDef(BadGuyType.ATTACKER, 2, ZOMBIE))
+    fact.addBadguyDef(new BadguyDef(BadGuyType.ATTACKER, 3, GHOUL))
+    fact.addBadguyDef(new BadguyDef(BadGuyType.ATTACKER, 4, GOST))
+    fact.addBadguyDef(new BadguyDef(BadGuyType.SUPPORT, 4, SKELETON_PRIEST))
+    fact.addBadguyDef(new BadguyDef(BadGuyType.ATTACKER, 5, BIG_GOOL))
+    fact.addBadguyDef(new BadguyDef(BadGuyType.ATTACKER, 6, MEAT_WAGON))
+    fact.addBadguyDef(new BadguyDef(BadGuyType.SUPPORT, 6, GENERAL_SPIDER))
+    fact.addBadguyDef(new BadguyDef(BadGuyType.SUPPORT, 8, OBSIDIAN_STATUTE))
+    fact.addBadguyDef(new BadguyDef(BadGuyType.SUPPORT, 9, ZOMBIEMANCER))
+    fact.addBadguyDef(new BadguyDef(BadGuyType.ATTACKER, 9, GHOST_GOLEM))
+    fact.addBadguyDef(new BadguyDef(BadGuyType.ATTACKER, 16, MEAT_WAGON_WAGON))
+    fact.addBadguyDef(new BadguyDef(BadGuyType.BOSS, 200, STARCHES))
+    fact.addBadguyDef(new BadguyDef(BadGuyType.ATTACKER, 10, FOOTPERSON))
+    fact.addBadguyDef(new BadguyDef(BadGuyType.ATTACKER, 12, BOMBERMAN))
+    waveFactory = fact
+    currentWave = fact.createWave(currentWaveIndex)
+    timer t = getTimer()
+    t.start(10, () -> begin
+        currentWave.spawn()
+        GetExpiredTimer().destr()
+    end)
+    trigger trig = CreateTrigger()
+    trig.registerPlayerChatEvent(Player(0), "next", false)
+    trig.addAction(() -> currentWave.forceEnd())
