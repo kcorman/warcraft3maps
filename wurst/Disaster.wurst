@@ -9,16 +9,16 @@ constant initialSize = 2.5
 class DisasterTracker
     unit dis
     real curSize
+    unit summoner
     int skillLvl
     construct(unit dis, unit summoner)
         this.dis = dis
+        this.summoner = summoner
         this.skillLvl = summoner.getAbilityLevel(abilityId)
         this.curSize = initialSize * skillLvl
         dis.setOwner(Player((PLAYER_NEUTRAL_AGGRESSIVE)), true)
         dis.setScale(curSize)
         AddSpecialEffectTarget("UndeadLargeBuildingFire1.mdl", dis, "head")
-        print("skillLvl= " + skillLvl.toString())
-        print("summ= " + summoner.getName())
         timer t = getTimer()
         t.setData(this castTo int)
         t.startPeriodic(1.0, () -> begin
@@ -40,7 +40,10 @@ class DisasterTracker
         curSize+= 0.40
         dis.setScale(curSize)
         dis.setLife(dis.getLife() * 1.05)
-        dis.issuePointOrder("attack", gg_rct_BanditCamp.getCenter())
+        if(summoner.isAlive())
+            dis.issuePointOrder("attack", summoner.getPos())
+        else
+            dis.issuePointOrder("attack", gg_rct_BanditCamp.getCenter())
 
     static HashMap<unit, DisasterTracker> trackers = new HashMap<unit, DisasterTracker>()
     static function staticRecordKill(unit killer)

@@ -2,8 +2,8 @@ package Treason
 import TimerUtils
 import PTQConstants
 import SoundUtils
-constant real BASE_DMG_SEC = 75.0
-constant real DMG_LVL_FACTOR = 75.0
+constant real BASE_DMG_SEC = 125.0
+constant real DMG_LVL_FACTOR = 100.0
 constant int SPIN_ATTACK_ID = 'A00O'
 constant real MOVEMENT_SPEED = 400
 constant real TICK_TIME = 0.04
