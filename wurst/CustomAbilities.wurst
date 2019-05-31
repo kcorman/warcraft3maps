@@ -1,0 +1,22 @@
+package CustomAbilities
+import AbilityIds
+import AbilityObjEditing
+import Assets
+import ObjectIdGenerator
+
+public constant NoDmgFirebolt = compiletime(ABIL_ID_GEN.next())
+
+@compiletime function gen()
+	new AbilityDefinitionFireBolt(NoDmgFirebolt)
+		..setLevels(4)
+		..setName("No Dmg Firebolt")
+        ..presetDamage(lvl -> 0)
+        ..setArtTarget(null)
+        ..setButtonPositionNormalX(3)
+        ..setButtonPositionNormalY(2)
+        ..setButtonPositionResearchX(3)
+        ..setIconNormal(Icons.bTNImmolationOn)
+        ..setIconResearch(Icons.bTNImmolationOn)
+        ..setMissileArt(null)
+        ..presetDurationHero(lvl -> 0)
+        ..presetDurationNormal(lvl -> 0)

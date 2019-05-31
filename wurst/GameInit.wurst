@@ -87,6 +87,7 @@ public class Utils
     static LinkedList<player> allPlayers = new LinkedList<player>
     static FriendlyStuff goodGusy
     static FriendlyStuff badGusy
+    static int numPlayers = 0
     static HashMap<player, FriendlyStuff> friendlies = new HashMap<player, FriendlyStuff>
     
     static function buyHero(unit hero)
@@ -137,7 +138,9 @@ init
     SetCameraBoundsToRect(gg_rct_PlayableArea)
     int i = 0
     while(i < 12)
-            Utils.allPlayers.add(players[i])
+            if(players[i].getSlotState() == PLAYER_SLOT_STATE_PLAYING and players[i].getController() == MAP_CONTROL_USER)
+                Utils.numPlayers++
+                Utils.allPlayers.add(players[i])
             i++
     
     Utils.goodGusy = new FriendlyStuff(Player(10), true)

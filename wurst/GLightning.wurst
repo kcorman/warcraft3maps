@@ -2,16 +2,42 @@ package GLightning
 import SoundUtils
 import Simulate3dSound
 import Knockback3
+import ClosureEvents
+import OrderIds
+import AbilityIds
+import HashSet
+import ClosureTimers
+import DummyCaster
 constant SoundDefinition snd = new SoundDefinition("war3mapImported\\UnlimitedPower.mp3", false)
 constant int LIGHTING_SPELL = 'A00E'
+constant int LIGHTNING_EFFECT_SPELL = 'A01C'
 
+HashSet<unit> lightningCasters = new HashSet<unit>()
+
+function stopLightning(unit caster)
+    lightningCasters.remove(caster)
+
+function doLightning(unit caster, unit target)
+    sound s = snd.play().snd
+    bindSoundToPoint(s, GetSpellTargetUnit().getPos().x, GetSpellTargetUnit().getPos().y, 400,800, 15000)
+    lightningCasters.add(caster)
+    let spellLvl = caster.getAbilityLevel(LIGHTING_SPELL)
+    doPeriodicallyCounted(.35, 36) (CallbackCounted cb) ->
+        if(not lightningCasters.has(caster))
+            cb.stop()
+            s.stop(false, false)
+        else
+            new DummyCaster()
+                ..origin(caster.getPos())
+                ..owner(caster.getOwner())
+                ..delay(1)
+                ..castTarget(LIGHTNING_EFFECT_SPELL, spellLvl, OrderIds.forkedlightning, target)
+   
 init
-    trigger t = CreateTrigger()
-    t.registerAnyUnitEvent(EVENT_PLAYER_UNIT_SPELL_EFFECT)
-    t.addCondition(Condition(() -> GetSpellAbilityId() == LIGHTING_SPELL))
-    t.addAction(() -> begin
-        sound s = snd.play().snd
-        bindSoundToPoint(s, GetSpellTargetUnit().getPos().x, GetSpellTargetUnit().getPos().y, 400,800, 15000)
-        // Knockback3.add(GetSpellTargetUnit(), GetSpellTargetUnit().getPos().moveTowards(GetSpellAbilityUnit().getPos(), -300), 600)
-        // Knockback3.add(GetSpellTargetUnit(), 100, GetSpellAbilityUnit().getFacingAngle(), angle(0))
-    end)
+    EventListener.add(EVENT_PLAYER_UNIT_SPELL_ENDCAST) () ->
+        if(GetSpellAbilityId() == LIGHTING_SPELL)
+            stopLightning(GetSpellAbilityUnit())
+
+    EventListener.add(EVENT_PLAYER_UNIT_SPELL_EFFECT) () ->
+        if(GetSpellAbilityId() == LIGHTING_SPELL)
+            doLightning(GetSpellAbilityUnit(), GetSpellTargetUnit())

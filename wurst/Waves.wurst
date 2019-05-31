@@ -1,5 +1,5 @@
 package Waves
-/*import LinkedList
+import LinkedList
 import TimerUtils
 import GameInit
 constant player GoodGusy = Player(10)
@@ -9,11 +9,15 @@ constant int FOOTMAN = 'hfoo'
 constant int SORCERESS = 'hsor'
 constant int GHOUL = 'ugho'
 constant int BIG_GOOL = 'u005'
+constant int TUFF_ZOMBIE = 'n00D'
 constant int GOST = 'n008'
 constant int GHOST_GOLEM = 'n009'
+constant int GENERAL_SPIDER = 'u006'
 constant int NECRO = 'unec'
 constant int STARCHES = 'u003'
 constant int ZOMBIE = 'n00A'
+constant int SKELETON_PRIEST = 'u00D'
+constant int OBSIDIAN_STATUTE = 'u00E'
 constant int ZOMBIEMANCER = 'u002'
 constant int FOOTPERSON = 'h007'
 constant int BOMBERMAN = 'h008'
@@ -102,17 +106,17 @@ function spawnGoodGusy()
 
 
 function startWave()
-    if(waves.size() >= currentWaveIndex or currentWaveIndex >= NUM_WAVES)
+    if(waves.isEmpty())
         Utils.win()
 
     spawnGoodGusy()
-    Wave wave = waves.get(currentWaveIndex)
+    Wave wave = waves.dequeue()
     timer startTimer = getTimer()
     startTimer.setData(wave castTo int)
     startTimer.start(10, () -> (begin
-            Wave wa = (GetExpiredTimer().getData() castTo Wave)
-            wa.spawn()
-            GetExpiredTimer().destr()
+        Wave wa = (GetExpiredTimer().getData() castTo Wave)
+        wa.spawn()
+        GetExpiredTimer().destr()
     end))
     if(timerDialog != null)
         DestroyTimerDialog(timerDialog)
@@ -159,20 +163,41 @@ init
         new UnitAndAmount(GHOUL, 5)
     )))
     waves.add(new Wave(toList(
+        new UnitAndAmount(ZOMBIE, 6),
+        new UnitAndAmount(GHOUL, 4),
+        new UnitAndAmount(TUFF_ZOMBIE, 2)
+    )))
+    waves.add(new Wave(toList(
+        new UnitAndAmount(ZOMBIE, 6),
+        new UnitAndAmount(SKELETON_PRIEST, 2),
+        new UnitAndAmount(GHOUL, 4),
+        new UnitAndAmount(TUFF_ZOMBIE, 2)
+    )))
+    waves.add(new Wave(toList(
+        new UnitAndAmount(ZOMBIE, 6),
+        new UnitAndAmount(SKELETON_PRIEST, 2),
+        new UnitAndAmount(GHOUL, 4),
+        new UnitAndAmount(TUFF_ZOMBIE, 4),
+        new UnitAndAmount(BIG_GOOL, 1)
+    )))
+    waves.add(new Wave(toList(
         new UnitAndAmount(ZOMBIE, 7),
+        new UnitAndAmount(TUFF_ZOMBIE, 2),
         new UnitAndAmount(GHOUL, 5),
         new UnitAndAmount(MEAT_WAGON, 1),
-        new UnitAndAmount(BIG_GOOL, 1, false)
+        new UnitAndAmount(BIG_GOOL, 1)
     )))
     waves.add(new Wave(toList(
         new UnitAndAmount(ZOMBIE, 5),
         new UnitAndAmount(GHOUL, 3),
         new UnitAndAmount(GOST, 3),
+        new UnitAndAmount(TUFF_ZOMBIE, 2),
         new UnitAndAmount(BIG_GOOL, 1, false)
     )))
     waves.add(new Wave(toList(
-        new UnitAndAmount(ZOMBIE, 6),
+        new UnitAndAmount(ZOMBIE, 3),
         new UnitAndAmount(GHOUL, 2),
+        new UnitAndAmount(TUFF_ZOMBIE, 2),
         new UnitAndAmount(BIG_GOOL, 3, false),
         new UnitAndAmount(GOST, 4),
         new UnitAndAmount(MEAT_WAGON, 1),
@@ -182,6 +207,28 @@ init
         new UnitAndAmount(ZOMBIE, 5),
         new UnitAndAmount(MEAT_WAGON, 1),
         new UnitAndAmount(ZOMBIEMANCER, 2)
+    )))
+    waves.add(new Wave(toList(
+        new UnitAndAmount(SKELETON_PRIEST,3),
+        new UnitAndAmount(BIG_GOOL, 3, false)
+    )))
+    waves.add(new Wave(toList(
+        new UnitAndAmount(SKELETON_PRIEST,3),
+        new UnitAndAmount(MEAT_WAGON, 1),
+        new UnitAndAmount(BIG_GOOL, 5, false)
+    )))
+    waves.add(new Wave(toList(
+        new UnitAndAmount(SKELETON_PRIEST,3),
+        new UnitAndAmount(MEAT_WAGON, 1),
+        new UnitAndAmount(GOST, 4),
+        new UnitAndAmount(BIG_GOOL, 5)
+    )))
+    waves.add(new Wave(toList(
+        new UnitAndAmount(GHOST_GOLEM, 3)
+    )))
+    waves.add(new Wave(toList(
+        new UnitAndAmount(BIG_GOOL, 5, false),
+        new UnitAndAmount(GHOST_GOLEM, 2)
     )))
     waves.add(new Wave(toList(
         new UnitAndAmount(GHOUL, 2),
@@ -198,8 +245,24 @@ init
         new UnitAndAmount(GHOST_GOLEM, 1)
     )))
     waves.add(new Wave(toList(
+        new UnitAndAmount(GENERAL_SPIDER, 2),
+        new UnitAndAmount(BIG_GOOL, 6, false),
+        new UnitAndAmount(ZOMBIEMANCER, 2),
+        new UnitAndAmount(MEAT_WAGON, 1),
+        new UnitAndAmount(GHOST_GOLEM, 1)
+    )))
+    waves.add(new Wave(toList(
         new UnitAndAmount(ZOMBIE, 2),
         new UnitAndAmount(ZOMBIEMANCER, 2),
+        new UnitAndAmount(GENERAL_SPIDER, 2),
+        new UnitAndAmount(MEAT_WAGON, 1),
+        new UnitAndAmount(GHOST_GOLEM, 1),
+        new UnitAndAmount(BIG_GOOL, 5, false)
+    )))
+    waves.add(new Wave(toList(
+        new UnitAndAmount(SKELETON_PRIEST,3),
+        new UnitAndAmount(ZOMBIEMANCER, 2),
+        new UnitAndAmount(GENERAL_SPIDER, 2),
         new UnitAndAmount(MEAT_WAGON, 1),
         new UnitAndAmount(GHOST_GOLEM, 1),
         new UnitAndAmount(BIG_GOOL, 5, false)
@@ -220,15 +283,9 @@ init
         new UnitAndAmount(FOOTPERSON, 3),
         new UnitAndAmount(BOMBERMAN, 1)
     )))
-    timer t = getTimer()
-    t.setData(waves castTo int)
-    t.start(10, () -> begin
-        LinkedList<Wave> waveses = (GetExpiredTimer().getData() castTo LinkedList<Wave>)
-        waveses.getFirst().spawn()
-        GetExpiredTimer().destr()
-    end)
     trigger trig = CreateTrigger()
     trig.registerPlayerChatEvent(Player(0), "next", false)
     trig.addAction(() -> currentWave.forceEnd())
+    
+    startWave()
 
-    */
