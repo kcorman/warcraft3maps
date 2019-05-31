@@ -2,6 +2,10 @@ package Order66
 import LinkedList
 import HashMap
 import SoundUtils
+import ClosureEvents
+import ClosureTimers
+import TimerUtils
+import OrderIds
 
 constant int TAG_UNIT = 'A00G'
 constant int CONVERT_UNITS = 'A00H'
@@ -41,7 +45,22 @@ class Order66Tracker
     static function doTragedyCast(unit caster)
         tragedySound.playOnPoint(caster.getPos3Real())
 init
-    trigger t = CreateTrigger()
+    EventListener.onCast(TAG_UNIT) (unit caster) ->
+        let caster = GetSpellAbilityUnit()
+        let target = GetSpellTargetUnit()
+        let nearby = GetUnitsInRangeOfLocMatching(300, target.getLoc(),Condition(() -> begin
+            return GetFilterUnit().getOwner().isAllyOf(GetSpellTargetUnit().getOwner())
+        end))
+        let lvl = caster.getAbilityLevel(TAG_UNIT)
+        order66Sound.playOnPoint(caster.getPos3Real())
+        getTimer().doPeriodicallyTimed(1, (3 + (lvl * 4)).toReal()) (cb) ->
+            if(cb.isLast())
+                nearby.targetOrder(OrderIds.stop, target)
+            else
+                nearby.targetOrder(OrderIds.attack, target)
+        
+        
+    /*trigger t = CreateTrigger()
     t.registerAnyUnitEvent(EVENT_PLAYER_HERO_SKILL)
     t.addCondition(Condition(() -> GetLearnedSkill() == TAG_UNIT))
     t.addAction(() -> Order66Tracker.initTracker(GetLearningUnit()))
@@ -64,6 +83,6 @@ init
     t = CreateTrigger()
     t.registerAnyUnitEvent(EVENT_PLAYER_UNIT_SPELL_EFFECT)
     t.addCondition(Condition(() -> GetSpellAbilityId() == TRAGEDY))
-    t.addAction(() -> Order66Tracker.doTragedyCast(GetSpellAbilityUnit()))
+    t.addAction(() -> Order66Tracker.doTragedyCast(GetSpellAbilityUnit()))*/
     
 

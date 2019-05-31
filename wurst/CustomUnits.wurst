@@ -1,0 +1,38 @@
+package CustomUnits
+import UnitIds
+import UnitObjEditing
+import CustomItems
+import Assets
+import Soundsets
+import CustomAbilities
+import ObjectIds
+import ObjectIdGenerator
+
+public constant WEAPON_SHOP = compiletime(UNIT_ID_GEN.next())
+public constant GHOSTMANCER = compiletime(UNIT_ID_GEN.next())
+
+@compiletime function gen1()
+	new BuildingDefinition(WEAPON_SHOP, UnitIds.goblinmerchant)
+		..setName("Weapon Shop")
+		..setUpgradesUsed("")
+        ..setFoodCost(0)
+		..setPropulsionWindowdegrees(1.0)
+        ..setTooltipBasic("")
+        ..setItemsSold(commaList(CLAWS_9, MY_ITEM_ID, BOOTS_OF_FITE, FIST_OF_FITE, CLOAK_OF_SMARTS))
+@compiletime function gen2()
+	new UnitDefinition(GHOSTMANCER, UnitIds.necromancer)
+		..setName("Ghostmage")
+		..setUpgradesUsed("")
+        ..setFoodCost(0)
+        ..setTooltipBasic("")
+        ..setHitPointsMaximumBase(400)
+        ..setModelFile(Units.kelthuzadGhost)
+        ..setAttack1DamageBase(20)
+        ..setManaInitialAmount(400)
+        ..setManaMaximum(400)
+        ..setManaRegeneration(1.)
+        ..setTintingColorBlue(255)
+        ..setTintingColorRed(150)
+        ..setTintingColorGreen(150)
+        ..setNormalAbilities(commaList(GhostLightning))
+        ..setUnitSoundSet(Soundsets.kelThuzadNecro)

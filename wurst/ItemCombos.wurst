@@ -1,0 +1,55 @@
+package ItemCombos
+import LinkedList
+import HashSet
+import ClosureEvents
+import Effect
+import Abilities
+import AttachmentPoints
+import ClosureTimers
+
+let allCombos = new LinkedList<ItemCombo>
+
+public function registerItemCombo(vararg int items)
+    HashSet<int> comboItems = new HashSet<int>
+    int index = 0
+    int resultItem = 0
+    for int itemC in items
+        if(index == 0)
+            resultItem = itemC
+        else
+            comboItems.add(itemC)
+        index++
+
+    allCombos.add(new ItemCombo(resultItem, comboItems))
+
+class ItemCombo
+    HashSet<int> items
+    int resultingItemType
+    construct(int resultType, HashSet<int> items)
+        this.items = items
+        this.resultingItemType = resultType
+init
+    EventListener.add(EVENT_PLAYER_UNIT_SELL_ITEM) () ->
+        int itemType = GetSoldItem().getTypeId()
+        unit purchaser = GetBuyingUnit()
+        doAfter(0.01) () ->
+            HashSet<int> allPurchaserItems = new HashSet<int>
+            for i = 0 to 5
+                item theItem = purchaser.itemInSlot(i)
+                if(theItem != null)
+                    allPurchaserItems.add(theItem.getTypeId())
+            
+            for ItemCombo combo in allCombos
+                if(combo.items.has(itemType))
+                    boolean hasAll = true
+                    for int itemTypeC in combo.items
+                        if not allPurchaserItems.has(itemTypeC)
+                            hasAll = false
+
+                    if(hasAll)
+                        // remove items from purchaser
+                        for int itemTypeC in combo.items
+                            purchaser.getItemById(itemTypeC).remove()
+                        purchaser.addItemById(combo.resultingItemType)
+                        flashEffect(Abilities.innerFireTarget, purchaser, AttachmentPoints.overhead)
+                        break

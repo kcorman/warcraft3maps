@@ -2,6 +2,7 @@ package Waves
 import LinkedList
 import TimerUtils
 import GameInit
+import CustomUnits
 constant player GoodGusy = Player(10)
 constant player BadGuy = Player(11)
 constant int NUM_WAVES = 13
@@ -181,6 +182,10 @@ init
         new UnitAndAmount(BIG_GOOL, 1)
     )))
     waves.add(new Wave(toList(
+        new UnitAndAmount(ZOMBIE, 2),
+        new UnitAndAmount(GHOSTMANCER, 1)
+    )))
+    waves.add(new Wave(toList(
         new UnitAndAmount(ZOMBIE, 7),
         new UnitAndAmount(TUFF_ZOMBIE, 2),
         new UnitAndAmount(GHOUL, 5),
@@ -215,7 +220,8 @@ init
     waves.add(new Wave(toList(
         new UnitAndAmount(SKELETON_PRIEST,3),
         new UnitAndAmount(MEAT_WAGON, 1),
-        new UnitAndAmount(BIG_GOOL, 5, false)
+        new UnitAndAmount(BIG_GOOL, 5, false),
+        new UnitAndAmount(GHOSTMANCER, 1)
     )))
     waves.add(new Wave(toList(
         new UnitAndAmount(SKELETON_PRIEST,3),
@@ -228,7 +234,8 @@ init
     )))
     waves.add(new Wave(toList(
         new UnitAndAmount(BIG_GOOL, 5, false),
-        new UnitAndAmount(GHOST_GOLEM, 2)
+        new UnitAndAmount(GHOST_GOLEM, 2),
+        new UnitAndAmount(GHOSTMANCER, 1)
     )))
     waves.add(new Wave(toList(
         new UnitAndAmount(GHOUL, 2),
@@ -269,11 +276,14 @@ init
     )))
     waves.add(new Wave(toList(
         new UnitAndAmount(MEAT_WAGON_WAGON, 1),
-        new UnitAndAmount(BIG_GOOL, 5, false)
+        new UnitAndAmount(BIG_GOOL, 5, false),
+        new UnitAndAmount(GHOSTMANCER, 1)
     )))
     waves.add(new Wave(toList(
         new UnitAndAmount(MEAT_WAGON_WAGON, 3),
-        new UnitAndAmount(BIG_GOOL, 5, false)
+        new UnitAndAmount(BIG_GOOL, 5, false),
+        new UnitAndAmount(GENERAL_SPIDER, 2),
+        new UnitAndAmount(GHOSTMANCER, 1)
     )))
     waves.add(new Wave(toList(
         new UnitAndAmount(ZOMBIE, 5),
@@ -286,6 +296,7 @@ init
     trigger trig = CreateTrigger()
     trig.registerPlayerChatEvent(Player(0), "next", false)
     trig.addAction(() -> currentWave.forceEnd())
-    
+    forceCurrentWaveEnd = () ->
+        currentWave.forceEnd()
     startWave()
 

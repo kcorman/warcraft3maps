@@ -2,21 +2,64 @@ package CustomAbilities
 import AbilityIds
 import AbilityObjEditing
 import Assets
+import Lightning
 import ObjectIdGenerator
 
 public constant NoDmgFirebolt = compiletime(ABIL_ID_GEN.next())
 
-@compiletime function gen()
+@compiletime function gen1()
 	new AbilityDefinitionFireBolt(NoDmgFirebolt)
 		..setLevels(4)
 		..setName("No Dmg Firebolt")
         ..presetDamage(lvl -> 0)
-        ..setArtTarget(null)
         ..setButtonPositionNormalX(3)
         ..setButtonPositionNormalY(2)
         ..setButtonPositionResearchX(3)
         ..setIconNormal(Icons.bTNImmolationOn)
         ..setIconResearch(Icons.bTNImmolationOn)
-        ..setMissileArt(null)
         ..presetDurationHero(lvl -> 0)
         ..presetDurationNormal(lvl -> 0)
+
+public constant GhostLightning = compiletime(ABIL_ID_GEN.next())
+
+@compiletime function gen2()
+	new AbilityDefinitionChainLightningcreep(GhostLightning)
+		..setLevels(2)
+        ..setName("Ghsot Lightning")
+        ..presetDamageperTarget(lvl -> (lvl * 100).toReal())
+        ..presetDamageReductionperTarget(lvl -> -.5)
+        ..presetCooldown(lvl -> 10.)
+        ..presetCastingTime(lvl -> 4.5 - (1.5 * lvl))
+        ..presetManaCost(lvl -> 100)
+        ..setLightningEffects(LIGHTNING_MANA_BURN)
+        ..presetNumberofTargetsHit(lvl -> 15)
+        ..setButtonPositionNormalX(0)
+        ..setButtonPositionNormalY(2)
+        ..setButtonPositionResearchX(0)
+
+
+public function createAttackBonusAbility(int dmg) returns int
+    int id = ABIL_ID_GEN.next()
+    new AbilityDefinitionAttackBonusAIt9(id)
+        .setAttackBonus(1, dmg)
+    return id
+public function createArmorBonusAbility(int amt) returns int
+    int id = ABIL_ID_GEN.next()
+    new AbilityDefinitionDefenseBonusPlus1(id)
+        ..setDefenseBonus(1, amt)
+    return id
+
+public function createStatBonusAbility(int intel, int str, int agil) returns int
+    int id = ABIL_ID_GEN.next()
+    AbilityDefinitionIntelligenceBonusPlus1 def = new AbilityDefinitionIntelligenceBonusPlus1(id)
+    def.setIntelligenceBonus(1, 0)
+    if(intel > 0)
+        def.setIntelligenceBonus(1, intel)
+    if(str > 0)
+        def.setStrengthBonus(1, str)
+    if(agil > 0)
+        def.setAgilityBonus(1, agil)
+    return id
+
+
+

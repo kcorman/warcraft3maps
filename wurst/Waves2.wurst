@@ -183,7 +183,7 @@ class WaveFactory
         // pick the actual attackers
         real percentAttackers = 1 - getRepeatingRandom(MAX_SUPPORT_PERCENT, PERCENT_SUPPORT_PERIOD, gameLevel)
         real attackerMaxPower = totalPower * percentAttackers
-        print("Potential power: " + totalPower.toString())
+        //print("Potential power: " + totalPower.toString())
         LinkedList<BadGuyCount> attackerDefsAndCounts = getBadGuyCountsFromList(attackerTypes, attackerMaxPower, powerCheck)
         // now get any supports we need
         real attackerActualPower = 0
@@ -191,13 +191,13 @@ class WaveFactory
             attackerActualPower += bgc.count * bgc.def.baseLevel
         real remainingPower = totalPower - attackerActualPower
         
-        print("Attacker actual power: " + attackerActualPower.toString())
+        //print("Attacker actual power: " + attackerActualPower.toString())
         LinkedList<BadGuyCount> supportDefsAndCounts = getBadGuyCountsFromList(supportTypes, remainingPower, powerCheck)
         real supportActualPower = 0
         for BadGuyCount bgc in supportDefsAndCounts
             supportActualPower = supportActualPower + bgc.count * bgc.def.baseLevel
         
-        print("Support actual power: " + supportActualPower.toString())
+        //print("Support actual power: " + supportActualPower.toString())
         return new Wave(attackerDefsAndCounts..addAll(supportDefsAndCounts), attackerActualPower + supportActualPower, gameLevel)
 
     private function getBadGuyCountsFromList(LinkedList<BadguyDef> list, real totalPower, real powerCheck) returns LinkedList<BadGuyCount>

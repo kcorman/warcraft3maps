@@ -41,3 +41,4 @@ init
     EventListener.add(EVENT_PLAYER_UNIT_SPELL_EFFECT) () ->
         if(GetSpellAbilityId() == LIGHTING_SPELL)
             doLightning(GetSpellAbilityUnit(), GetSpellTargetUnit())
+

@@ -2,6 +2,12 @@ package GameInit
 import LinkedList
 import HashMap
 import TimerUtils
+import Effect
+import Assets
+import CustomUnits
+import ClosureEvents
+import DialogBox
+
 constant int FOOTMAN = 'hfoo'
 constant int SORCERESS = 'hsor'
 constant int GHOUL = 'ugho'
@@ -14,10 +20,22 @@ constant int VILLAGER = 'u000'
 constant int INITIAL_GOLD = 9001
 constant int INITIAL_WOOD = 200
 constant int UNIT_TRAINER_ABILITY = 'A00P'
+constant int SELLS_UNIT_TRAINERS = 'A01D'
+constant vec2 SHOP1LOC = vec2(7318., -12387.)
+constant vec2 MERC1LOC = vec2(9390., -11863.)
+constant vec2 WEAPON_SHOP_LOC = vec2(8744., -11817.)
 constant unit THE_BANDIT = gg_unit_n000_0018
 constant rect BanditCamp = gg_rct_BanditCamp
 constant LinkedList<unit> playerHeroes = new LinkedList<unit>
 
+unit weaponShop
+
+public real timeBetweenWaves = 10.
+public real difficultyMultplier = 1.0
+public interface Runnable
+    function run()
+
+public Runnable forceCurrentWaveEnd = null
 class FriendlyStuff
     player cpu
     unit tavern
@@ -105,6 +123,12 @@ public class Utils
             hero.revive(BanditCamp.getCenter(), true)
             hero.setHP(hero.getMaxHP())
             hero.setMana(hero.getMaxMana())
+    static function resetAllHeroes()
+        for hero in playerHeroes
+            hero.revive(BanditCamp.getCenter(), true)
+            hero.setHP(hero.getMaxHP())
+            hero.setMana(hero.getMaxMana())
+            hero.setPos(BanditCamp.getCenter())
     static function getOwnedUnitOfType(player onwer, int typ) returns unit
         group g = GetUnitsOfTypeIdAll(typ)
         unit result = null
@@ -133,7 +157,35 @@ public class Utils
                 break
         g.destr()
         return result
+public class Option<T>
+    T value
+    string name
+    construct(T value, string name)
+        this.value = value
+        this.name = name
 
+public function createOption(int val, string units) returns Option<int>
+    return new Option<int>(val, val.toString() + " " + units)
+
+public function createOptionReal(real val, string units) returns Option<real>
+    return new Option<real>(val, val.toString() + " " + units)
+
+public function createOptionString(string val) returns Option<string>
+    return new Option<string>(val, val)
+
+public interface TSettingClosure<T>
+    function run(Option<T> setting)
+
+function createDialogueForSetting<T>(player p, string settingName,LinkedList<Option<T>> options, DialogBox nextWindow, TSettingClosure<T> settingHandler) returns DialogBox
+    DialogBox d = new DialogBox(settingName)
+    for Option<T> option in options
+        d.addButton(settingName + " " + option.name) () ->
+            destroy(d)
+            print(settingName + " set to " + option.name)
+            settingHandler.run(option)
+            if(nextWindow != null)
+                nextWindow.display(p, true)
+    return d
 init
     SetCameraBoundsToRect(gg_rct_PlayableArea)
     int i = 0
@@ -155,6 +207,7 @@ init
         else
             Utils.friendlies.put(p, Utils.badGusy) 
         FriendlyStuff fs = Utils.friendlies.get(p)
+
         createUnit(p, VILLAGER, fs.tavern.getPos() + vec2(0, 200), angle(0))
         p.addGold(INITIAL_GOLD)
         p.addLumber(INITIAL_WOOD)
@@ -178,7 +231,11 @@ init
             GetEnumPlayer().addGold(GetDyingUnit().getLevel() * 10)
         end)
     end)
-
+    EventListener.add(EVENT_PLAYER_UNIT_SELL) () ->
+        if(GetSellingUnit().hasAbility(SELLS_UNIT_TRAINERS))
+            flashEffect(Abilities.darkSummonTarget, GetSoldUnit().getPos())
+            flashEffect(Abilities.darkPortalTarget, GetSoldUnit(), AttachmentPoints.origin)
+            GetSoldUnit().setPos(gg_rct_trainingArea.getCenter())
     t = CreateTrigger()
     t.registerAnyUnitEvent(EVENT_PLAYER_UNIT_DEATH)
     t.addCondition(Condition(() -> GetDyingUnit() == THE_BANDIT))
@@ -189,4 +246,37 @@ init
             CustomDefeatBJ(GetEnumPlayer(), "Fin")
         end)
     end)
+    weaponShop = createUnit(Player(10), WEAPON_SHOP, WEAPON_SHOP_LOC, angle(0.))
+    EventListener.add(EVENT_PLAYER_CHAT_FILTER) () ->
+        if(GetEventPlayerChatString() == "-settings")
+            player p = GetTriggerPlayer()
+            DialogBox difficulty = createDialogueForSetting(p, "Difficulty", new LinkedList<Option<int>>..add(createOption(1, "DU"), createOption(2, "DU")), null)(val) ->
+                difficultyMultplier = val.value.toReal()
+            DialogBox timeSetting = createDialogueForSetting(p, "Time Between Waves", new LinkedList<Option<int>>..add(
+            createOption(1, "Seconds"), 
+            createOption(5, "Seconds"), 
+            createOption(10, "Seconds"), 
+            createOption(20, "Seconds"), 
+            createOption(30, "Seconds")), null)(val) ->
+                timeBetweenWaves = val.value.toReal()
+
+            
+            DialogBox debug = new DialogBox("Debug")
+            debug.addButton("Force Kill Current Wave") () ->
+                print ("Forcing current wave to end")
+                if(forceCurrentWaveEnd != null)
+                    forceCurrentWaveEnd.run()
+            debug.addButton("Revive and Move all heroes to center") () ->
+                print("Reviving and moving all heroes to center")
+                Utils.resetAllHeroes()
+            debug.addButton("Close Menu") () ->
+                // do nothing
+            DialogBox menu = new DialogBox("Menu")
+            menu.addButton("Difficulty") () ->
+                difficulty.display(p, true)
+            menu.addButton("Time Between Waves") () ->
+                timeSetting.display(p, true)
+            menu.addButton("Debug Menu") () ->
+                debug.display(p, true)
+            menu.display(p, true)
 

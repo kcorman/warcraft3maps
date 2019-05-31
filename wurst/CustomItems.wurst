@@ -1,0 +1,90 @@
+package CustomItems
+import UnitIds
+import ItemObjEditing
+import Assets
+import AbilityIds
+import CustomAbilities
+import ObjectIds
+import ObjectIdGenerator
+import ItemCombos
+
+
+public constant MY_ITEM_ID = compiletime(ITEM_ID_GEN.next())
+public constant CLAWS_9 = 'rat9'
+
+@compiletime function gen()
+    new ItemDefinition(MY_ITEM_ID, 'rat6')
+        ..setGoldCost(700)
+        ..setAbilities(commaList(AbilityIds.itemAttackFrostBonus, createAttackBonusAbility(5)))
+        ..setName("Sword of Freeze")
+        ..setTooltipBasic("Sword of Freeze")
+        ..setTooltipExtended("Adds 14 damage n slows gusy")
+        ..setStockMaximum(1)
+        ..setStockReplenishInterval(1)
+        ..setStockStartDelay(1)
+        ..setInterfaceIcon(Icons.bTNSteelMelee)
+        ..setButtonPositionX(1)
+        ..setButtonPositionY(0)
+
+public constant CLOAK_OF_SMARTS = compiletime(ITEM_ID_GEN.next())
+@compiletime function gen1()
+    new ItemDefinition(CLOAK_OF_SMARTS, 'rat6')
+        ..setGoldCost(1200)
+        ..setAbilities(commaList(createStatBonusAbility(13, 0, 0), createArmorBonusAbility(2)))
+        ..setName("Cloak of Smarts")
+        ..setTooltipBasic("Cloak of Smarts")
+        ..setTooltipExtended("Grants wearer 13 intelligence and 2 armor")
+        ..setStockMaximum(1)
+        ..setStockReplenishInterval(1)
+        ..setStockStartDelay(1)
+        ..setInterfaceIcon(Icons.bTNCloak)
+        ..setButtonPositionX(1)
+        ..setButtonPositionY(0)
+
+public constant FIST_OF_FITE = compiletime(ITEM_ID_GEN.next())
+@compiletime function gen2()
+    new ItemDefinition(FIST_OF_FITE, 'rat6')
+        ..setGoldCost(1400)
+        ..setAbilities(commaList(createStatBonusAbility(0, 13, 0), createArmorBonusAbility(4)))
+        ..setName("Fist Of Fite")
+        ..setTooltipBasic("Fist Of Fite")
+        ..setTooltipExtended("Grants wearer 13 Strength and 4 armor")
+        ..setStockMaximum(1)
+        ..setStockReplenishInterval(1)
+        ..setStockStartDelay(1)
+        ..setInterfaceIcon(Icons.bTNGauntletsOfOgrePower)
+        ..setButtonPositionX(1)
+        ..setButtonPositionY(0)
+
+public constant BOOTS_OF_FITE = compiletime(ITEM_ID_GEN.next())
+@compiletime function gen3()
+    new ItemDefinition(BOOTS_OF_FITE, 'rat6')
+        ..setGoldCost(1300)
+        ..setAbilities(commaList(AbilityIds.itemMoveSpeedBonus, createStatBonusAbility(0, 0, 13)))
+        ..setName("Boots of Fite")
+        ..setTooltipBasic("Boots Of Fite")
+        ..setTooltipExtended("Grants wearer 13 Agility and additional movement speed")
+        ..setStockMaximum(1)
+        ..setStockReplenishInterval(1)
+        ..setStockStartDelay(1)
+        ..setInterfaceIcon(Icons.bTNBootsOfSpeed)
+        ..setButtonPositionX(1)
+        ..setButtonPositionY(0)
+
+public constant CROWN_OF_STUFF = compiletime(ITEM_ID_GEN.next())
+@compiletime function gen4()
+    new ItemDefinition(CROWN_OF_STUFF, 'rat6')
+        ..setGoldCost(4000)
+        ..setAbilities(commaList(AbilityIds.itemMoveSpeedBonus, createArmorBonusAbility(6), createStatBonusAbility(15, 15, 15)))
+        ..setName("Crown of Stuff")
+        ..setTooltipBasic("Crown of Stuff")
+        ..setTooltipExtended("Grants wearer 15 to all starts, 6 armor, and additional movement speed")
+        ..setStockMaximum(1)
+        ..setStockReplenishInterval(1)
+        ..setStockStartDelay(1)
+        ..setInterfaceIcon(Icons.bTNHelmOfValor)
+        ..setButtonPositionX(1)
+        ..setButtonPositionY(0)
+
+init
+    registerItemCombo(CROWN_OF_STUFF, BOOTS_OF_FITE, FIST_OF_FITE, CLOAK_OF_SMARTS)
