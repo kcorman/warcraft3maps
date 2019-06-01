@@ -1,6 +1,6 @@
 ---
-projectName: MyWurstProject
+projectName: ProtectTheBandit
 buildMapData:
-  name: MyMapName
-  fileName: MyMapFile
+  name: ProtectTheBandit
+  fileName: ProtectTheBandit
   author: Derpsicle

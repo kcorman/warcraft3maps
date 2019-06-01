@@ -3,6 +3,7 @@ import AbilityIds
 import AbilityObjEditing
 import Assets
 import Lightning
+import ChannelAbilityPreset
 import ObjectIdGenerator
 
 public constant NoDmgFirebolt = compiletime(ABIL_ID_GEN.next())
@@ -37,6 +38,19 @@ public constant GhostLightning = compiletime(ABIL_ID_GEN.next())
         ..setButtonPositionNormalY(2)
         ..setButtonPositionResearchX(0)
 
+public constant counterStrike = compiletime(ABIL_ID_GEN.next())
+@compiletime function gen3()
+    new ChannelAbilityPreset(counterStrike, 5, true)
+        ..presetTargetTypes(Targettype.POINT) // Set the target type for all levels
+        ..presetTooltipNormal(lvl -> "Counter Strike (Q) - Level " + lvl.toString())
+        ..presetDurationHero(lvl -> 5.)
+        ..presetTooltipNormalExtended(lvl -> "Stand and channel for up to 5 seconds. When cancelled or finished, deal more damage back to the bad guys")
+        ..presetCooldown(lvl -> 15) // [4, 3, 2] seconds cooldown
+        ..presetCastRange(lvl -> 9999.)
+        ..presetHotkey("W")
+        ..presetButtonPosNormal(1, 2)
+        ..presetIcon(Icons.bTNBootsOfSpeed)
+
 
 public function createAttackBonusAbility(int dmg) returns int
     int id = ABIL_ID_GEN.next()
@@ -52,14 +66,13 @@ public function createArmorBonusAbility(int amt) returns int
 public function createStatBonusAbility(int intel, int str, int agil) returns int
     int id = ABIL_ID_GEN.next()
     AbilityDefinitionIntelligenceBonusPlus1 def = new AbilityDefinitionIntelligenceBonusPlus1(id)
-    def.setIntelligenceBonus(1, 0)
-    if(intel > 0)
-        def.setIntelligenceBonus(1, intel)
+    def.setIntelligenceBonus(1, intel)
     if(str > 0)
         def.setStrengthBonus(1, str)
     if(agil > 0)
         def.setAgilityBonus(1, agil)
     return id
+
 
 
 
