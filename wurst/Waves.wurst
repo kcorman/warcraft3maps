@@ -1,6 +1,7 @@
 package Waves
 import LinkedList
 import TimerUtils
+import MonsterAbilities
 import GameInit
 import CustomUnits
 constant player GoodGusy = Player(10)
@@ -36,7 +37,7 @@ constant int UNIT_TRAINER_ABILITY = 'A00P'
 constant rect BAD_GUY_01 = gg_rct_LandBad01
 constant rect BAD_GUY_02 = gg_rct_LandBad02 
 
-int currentWaveIndex = 0
+int currentWaveIndex = 4
 LinkedList<Wave> waves = null
 timerdialog timerDialog
 Wave currentWave
@@ -44,6 +45,8 @@ class Wave
     LinkedList<UnitAndAmount> units
     LinkedList<unit> actualUnits
     boolean val = true
+    boolean failed = false
+    int counter = 0
     construct(LinkedList<UnitAndAmount> units)
         this.units = units
     
@@ -53,25 +56,34 @@ class Wave
         for UnitAndAmount amt in units
             int actualAmt = (amt.relativeAmount * difficultyMultplier).toInt()
             for i = 1 to actualAmt
-                actualUnits.add(CreateUnit(BadGuy, amt.typ,BAD_GUY_01.getCenterX(), BAD_GUY_01.getCenterY(), 0))
+                unit u = CreateUnit(BadGuy, amt.typ,BAD_GUY_01.getCenterX(), BAD_GUY_01.getCenterY(), 0)
+                monsterCreated(u)
+                actualUnits.add(u)
                 if (not amt.boss)
-                    actualUnits.add(CreateUnit(BadGuy, amt.typ,BAD_GUY_02.getCenterX(), BAD_GUY_02.getCenterY(), 0))
+                    u = CreateUnit(BadGuy, amt.typ,BAD_GUY_02.getCenterX(), BAD_GUY_02.getCenterY(), 0)
+                    monsterCreated(u)
+                    actualUnits.add(u)
         timer orderUnits = getTimer()
         orderUnits.setData(this castTo int)
-        orderUnits.startPeriodic(15, () -> (begin
+        orderUnits.startPeriodic(5, () -> (begin
             Wave wave = (GetExpiredTimer().getData() castTo Wave)
-            wave.orderAttack()
-
+            if(wave.counter % 3 == 0)
+                wave.orderAttack()
+            wave.counter++
             boolean allDead = true
             for unit u in wave.actualUnits
                 if(u.isAliveTrick() and u.getOwner() == Player(11))
                     allDead = false
 
             if allDead
-                print("Wave defeated")
+                if(wave.failed)
+                    print("You lost. Will restart from three waves ago.")
+                    currentWaveIndex -= 3
+                else
+                    print("Wave defeated")
+                    currentWaveIndex = currentWaveIndex + 1
                 wave.actualUnits.clear()
                 Utils.reviveAllheroes()
-                currentWaveIndex = currentWaveIndex + 1
                 startWave()
                 GetExpiredTimer().destr()
                     
@@ -87,11 +99,7 @@ class Wave
             return not GetFilterUnit().isType(UNIT_TYPE_STRUCTURE) and not GetFilterUnit().hasAbility(UNIT_TRAINER_ABILITY)
         end))
         for unit u in g
-            location l = GetUnitLoc(gg_unit_n000_0018)
-            real x = GetLocationX(l)
-            real y = GetLocationY(l)
-            vec2 vec = vec2(x,y)
-            u.issuePointOrder("attack", vec)
+            u.issuePointOrder("attack", THE_BANDIT.getPos())
         g.destr()
 
 function spawnGoodGusy()
@@ -112,7 +120,7 @@ function startWave()
         Utils.win()
 
     spawnGoodGusy()
-    Wave wave = waves.dequeue()
+    Wave wave = waves.get(currentWaveIndex)
     timer startTimer = getTimer()
     startTimer.setData(wave castTo int)
     startTimer.start(timeBetweenWaves, () -> (begin
@@ -152,17 +160,13 @@ init
 
 
     waves = new LinkedList<Wave>
-    
+
     waves.add(new Wave(toList(
         new UnitAndAmount(ZOMBIE, 5)
     )))
     waves.add(new Wave(toList(
         new UnitAndAmount(ZOMBIE, 5),
         new UnitAndAmount(GHOUL, 3)
-    )))
-    waves.add(new Wave(toList(
-        new UnitAndAmount(ZOMBIE, 7),
-        new UnitAndAmount(GHOUL, 5)
     )))
     waves.add(new Wave(toList(
         new UnitAndAmount(ZOMBIE, 6),
@@ -183,24 +187,19 @@ init
         new UnitAndAmount(BIG_GOOL, 1)
     )))
     waves.add(new Wave(toList(
-        new UnitAndAmount(ZOMBIE, 2),
-        new UnitAndAmount(GHOSTMANCER, 1)
+        new UnitAndAmount(TUFF_ZOMBIE, 4),
+        new UnitAndAmount(GHOSTMANCER, 2)
     )))
     waves.add(new Wave(toList(
         new UnitAndAmount(ZOMBIE, 7),
         new UnitAndAmount(TUFF_ZOMBIE, 2),
         new UnitAndAmount(GHOUL, 5),
-        new UnitAndAmount(MEAT_WAGON, 1),
+        new UnitAndAmount(MEAT_WAGON, 3),
         new UnitAndAmount(BIG_GOOL, 1),
         new UnitAndAmount(GHOSTMANCER, 1)
     )))
     waves.add(new Wave(toList(
-        new UnitAndAmount(ZOMBIE, 5),
-        new UnitAndAmount(GHOUL, 3),
-        new UnitAndAmount(GOST, 3),
-        new UnitAndAmount(TUFF_ZOMBIE, 2),
-        new UnitAndAmount(BIG_GOOL, 1),
-        new UnitAndAmount(MEAT_WAGON, 4)
+        new UnitAndAmount(GIANT_GHOUL, 1, true) // boss wave
     )))
     waves.add(new Wave(toList(
         new UnitAndAmount(ZOMBIE, 3),
@@ -215,92 +214,92 @@ init
     waves.add(new Wave(toList(
         new UnitAndAmount(ZOMBIE, 5),
         new UnitAndAmount(MEAT_WAGON, 1),
-        new UnitAndAmount(ZOMBIEMANCER, 4)
+        new UnitAndAmount(ZOMBIEMANCER, 8)
     )))
     waves.add(new Wave(toList(
-        new UnitAndAmount(SKELETON_PRIEST,3),
-        new UnitAndAmount(BIG_GOOL, 3, false),
-        new UnitAndAmount(GHOSTMANCER, 4)
+        new UnitAndAmount(LIFE_STEALING_GHOST, 2),
+        new UnitAndAmount(GHOUL, 4)
     )))
     waves.add(new Wave(toList(
-        new UnitAndAmount(SKELETON_PRIEST,3),
-        new UnitAndAmount(MEAT_WAGON, 3),
-        new UnitAndAmount(BIG_GOOL, 5, false),
-        new UnitAndAmount(GHOSTMANCER, 2)
+        new UnitAndAmount(ZOMBIE, 5),
+        new UnitAndAmount(MEAT_WAGON, 1),
+        new UnitAndAmount(ZOMBIEMANCER, 8),
+        new UnitAndAmount(OBSIDIAN_STATUTE,3)
     )))
     waves.add(new Wave(toList(
-        new UnitAndAmount(OBSIDIAN_STATUTE,3),
-        new UnitAndAmount(MEAT_WAGON, 3),
-        new UnitAndAmount(GOST, 4),
-        new UnitAndAmount(BIG_GOOL, 5)
-    )))
-    waves.add(new Wave(toList(
-        new UnitAndAmount(GHOST_GOLEM, 3),
-        new UnitAndAmount(GHOSTMANCER, 3)
+        new UnitAndAmount(MEAT_WAGON_WAGON, 3) // boss, kinda
     )))
     waves.add(new Wave(toList(
         new UnitAndAmount(GHOUL, 2),
         new UnitAndAmount(BIG_GOOL, 3, false),
         new UnitAndAmount(ZOMBIEMANCER, 4),
-        new UnitAndAmount(OBSIDIAN_STATUTE, 2),
-        new UnitAndAmount(GHOST_GOLEM, 1)
-    )))
-    waves.add(new Wave(toList(
-        new UnitAndAmount(OBSIDIAN_STATUTE, 2),
-        new UnitAndAmount(BIG_GOOL, 4, false),
-        new UnitAndAmount(ZOMBIEMANCER, 2),
         new UnitAndAmount(GHOSTMANCER, 2),
-        new UnitAndAmount(MEAT_WAGON, 3),
+        new UnitAndAmount(OBSIDIAN_STATUTE, 2),
         new UnitAndAmount(GHOST_GOLEM, 1)
     )))
     waves.add(new Wave(toList(
-        new UnitAndAmount(GENERAL_SPIDER, 2),
-        new UnitAndAmount(BIG_GOOL, 6, false),
-        new UnitAndAmount(ZOMBIEMANCER, 2),
-        new UnitAndAmount(MEAT_WAGON, 1),
-        new UnitAndAmount(GHOST_GOLEM, 1)
+        new UnitAndAmount(GHOST_GOLEM, 6)
     )))
     waves.add(new Wave(toList(
-        new UnitAndAmount(OBSIDIAN_STATUTE, 2),
-        new UnitAndAmount(ZOMBIEMANCER, 2),
-        new UnitAndAmount(GENERAL_SPIDER, 2),
-        new UnitAndAmount(GHOSTMANCER, 3),
-        new UnitAndAmount(MEAT_WAGON, 1),
-        new UnitAndAmount(GHOST_GOLEM, 1),
-        new UnitAndAmount(BIG_GOOL, 5, false)
+        new UnitAndAmount(LIFE_STEALING_GHOST, 5)
     )))
     waves.add(new Wave(toList(
-        new UnitAndAmount(SKELETON_PRIEST,3),
-        new UnitAndAmount(OBSIDIAN_STATUTE, 2),
-        new UnitAndAmount(ZOMBIEMANCER, 2),
-        new UnitAndAmount(GENERAL_SPIDER, 2),
-        new UnitAndAmount(MEAT_WAGON, 1),
-        new UnitAndAmount(GHOSTMANCER, 3),
-        new UnitAndAmount(BIG_GOOL, 5, false)
-    )))
-    waves.add(new Wave(toList(
-        new UnitAndAmount(MEAT_WAGON_WAGON, 1),
-        new UnitAndAmount(BIG_GOOL, 5, false),
-        new UnitAndAmount(GHOSTMANCER, 1)
-    )))
-    waves.add(new Wave(toList(
-        new UnitAndAmount(MEAT_WAGON_WAGON, 3),
-        new UnitAndAmount(BIG_GOOL, 5, false),
-        new UnitAndAmount(GENERAL_SPIDER, 2),
-        new UnitAndAmount(GHOSTMANCER, 1)
+        new UnitAndAmount(GIANT_GHOUL, 2, false) // boss wave, kinda
     )))
     waves.add(new Wave(toList(
         new UnitAndAmount(ZOMBIE, 5),
-        new UnitAndAmount(STARCHES, 1, true)
+        new UnitAndAmount(STARCHES, 1, true) // boss
     )))
-    /*waves.add(new Wave(toList(
-        new UnitAndAmount(FOOTPERSON, 3),
-        new UnitAndAmount(BOMBERMAN, 1)
-    )))*/
+    waves.add(new Wave(toList(
+        new UnitAndAmount(FOOTPERSON, 6),
+        new UnitAndAmount(BOMBERMAN, 2)
+    )))
+
+    waves.add(new Wave(toList(
+        new UnitAndAmount(DETH_NIGHT, 1),
+        new UnitAndAmount(CRYPT_FREND, 6)
+    )))
+    waves.add(new Wave(toList(
+        new UnitAndAmount(DETH_NIGHT, 2),
+        new UnitAndAmount(CRYPT_FREND, 8)
+    )))
+    waves.add(new Wave(toList(
+        new UnitAndAmount(COIL_SNIPER, 1)
+    )))
+    waves.add(new Wave(toList(
+        new UnitAndAmount(DETH_NIGHT, 2),
+        new UnitAndAmount(CRYPT_FREND, 4),
+        new UnitAndAmount(COIL_SNIPER, 1)
+    )))
+    waves.add(new Wave(toList(
+        new UnitAndAmount(COIL_HYDRA, 1) // boss
+    )))
+    waves.add(new Wave(toList(
+        new UnitAndAmount(UNSTOPPABLE_TANK, 1) // boss
+    )))
+    waves.add(new Wave(toList(
+        new UnitAndAmount(UNSTOPPABLE_TANK, 3) // boss
+    )))
     trigger trig = CreateTrigger()
     trig.registerPlayerChatEvent(Player(0), "next", false)
     trig.addAction(() -> currentWave.forceEnd())
     forceCurrentWaveEnd = () ->
         currentWave.forceEnd()
     startWave()
+
+    trig = CreateTrigger()
+    trig.registerAnyUnitEvent(EVENT_PLAYER_UNIT_DEATH)
+    trig.addCondition(Condition(() -> GetDyingUnit() == THE_BANDIT))
+    trig.addAction(() -> begin
+        force f = GetPlayersAllies(GetDyingUnit().getOwner())
+        
+        if(currentWaveIndex < 3)
+            f.forEach(() -> begin
+                CustomDefeatBJ(GetEnumPlayer(), "Fin")
+            end)
+        else
+            currentWave.failed = true
+            currentWave.forceEnd()
+            THE_BANDIT = CreateUnit(THE_BANDIT.getOwner(), THE_BANDIT.getTypeId(), THE_BANDIT.getX(), THE_BANDIT.getY(), 0.0)
+    end)
 

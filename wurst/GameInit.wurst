@@ -6,6 +6,7 @@ import Effect
 import Assets
 import CustomUnits
 import ClosureEvents
+import MonsterAbilities
 import DialogBox
 
 constant int FOOTMAN = 'hfoo'
@@ -24,13 +25,13 @@ constant int SELLS_UNIT_TRAINERS = 'A01D'
 constant vec2 SHOP1LOC = vec2(7318., -12387.)
 constant vec2 MERC1LOC = vec2(9390., -11863.)
 constant vec2 WEAPON_SHOP_LOC = vec2(8744., -11817.)
-constant unit THE_BANDIT = gg_unit_n000_0018
+public unit THE_BANDIT = gg_unit_n000_0018
 constant rect BanditCamp = gg_rct_BanditCamp
 constant LinkedList<unit> playerHeroes = new LinkedList<unit>
 
 unit weaponShop
 
-public real timeBetweenWaves = 10.
+public real timeBetweenWaves = 3.
 public real difficultyMultplier = 1.0
 public interface Runnable
     function run()
@@ -236,16 +237,11 @@ init
             flashEffect(Abilities.darkSummonTarget, GetSoldUnit().getPos())
             flashEffect(Abilities.darkPortalTarget, GetSoldUnit(), AttachmentPoints.origin)
             GetSoldUnit().setPos(gg_rct_trainingArea.getCenter())
-    t = CreateTrigger()
-    t.registerAnyUnitEvent(EVENT_PLAYER_UNIT_DEATH)
-    t.addCondition(Condition(() -> GetDyingUnit() == THE_BANDIT))
-    t.addAction(() -> begin
-        force f = GetPlayersAllies(GetDyingUnit().getOwner())
-        
-        f.forEach(() -> begin
-            CustomDefeatBJ(GetEnumPlayer(), "Fin")
-        end)
-    end)
+
+    //unit u = createUnit(Player(0), BLADE_MISTRESS, gg_rct_BanditCamp.getCenter(), angle(0))
+    //u.setLevel(12, true)
+    //unit u = createUnit(Player(0), UNSTOPPABLE_TANK, gg_rct_helperArea.getCenter(), angle(0))
+    //monsterCreated(u)
     weaponShop = createUnit(Player(10), WEAPON_SHOP, WEAPON_SHOP_LOC, angle(0.))
     EventListener.add(EVENT_PLAYER_CHAT_FILTER) () ->
         if(GetEventPlayerChatString() == "-settings")

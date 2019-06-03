@@ -1,7 +1,230 @@
 package MonsterAbilities
+import ClosureEvents
+import CustomAbilities
+import GameTimer
+import ClosureTimers
+import TimerUtils
+import ClosureForGroups
+import Vectors
+import Effect
+import Assets
+import OrderIds
+import Lightning
+import DummyCaster
+import Knockback3
+import LinkedList
+import HashList
+import HashMap
+import PTQConstants
+import CustomUnits
 constant int MEAT_WAGON = 'umtw'
+
+interface HealthChangeCallback
+    function run(real diff, boolean last) returns boolean
+
+LinkedList<MonsterHealthTracker> hpTrackedMonsters = new LinkedList<MonsterHealthTracker>
+LinkedList<CoilTracker> coilList = new LinkedList<CoilTracker>
+
+class CoilTracker
+    unit coil
+    unit caster
+    lightning light
+
+public function monsterCreated(unit monster)
+    if(monster.getTypeId() == UNSTOPPABLE_TANK)
+        handleUnstoppableTank(monster)
+    else if (monster.getTypeId() == COIL_HYDRA)
+        monster.setVertexColor(150, 230, 150, 30)
+        for i = 0 to 1
+            createHydraCoil(monster)
+        
+timer coilTimer = null
+public function createHydraCoil(unit caster)
+    unit u = CreateUnit(caster.getOwner(), COIL_UNIT, caster.getX(), caster.getY(), caster.getFacing())
+    CoilTracker tracker = new CoilTracker()
+    tracker.coil = u
+    tracker.caster = caster
+    tracker.light = addLightning(LIGHTNING_CHAIN_LIGHTNING_PRIMARY, true, caster.getPos(), u.getPos())
+    tracker.light.setColor(colorA(25, 180, 69, 255))
+    coilList.add(tracker)
+    if(coilTimer == null)
+        startCoilTimer()
+
+public function startCoilTimer()
+    coilTimer = getTimer()
+    coilTimer.doPeriodically(.10) (CallbackPeriodic cb) ->
+        LLIterator<CoilTracker> itr = coilList.iterator()
+        while(itr.hasNext())
+            let trk = itr.next()
+            if(not trk.caster.isAliveTrick())
+                trk.coil.kill()
+                itr.remove()
+                trk.light.destr()
+            else if(trk.coil.isAliveTrick())
+                trk.light.move(true, trk.caster.getPos(), trk.coil.getPos())
+                if(trk.coil.getPos().distanceTo(trk.caster.getPos()) > 500)
+                    trk.coil.issuePointOrder("attack", trk.caster.getPos())
+            else
+                trk.light.destr()
+                itr.remove()
+                createHydraCoil(trk.caster)
+                createHydraCoil(trk.caster)
+
+
+class MonsterHealthTracker
+    real prevHP
+    real expiresAfter = 0
+    unit monster
+    HealthChangeCallback cb
+    function update() returns boolean
+        if(expiresAfter != 0.0 and expiresAfter < getElapsedGameTime())
+            cb.run(0., true)
+            return false
+        real diff
+        if(monster.isAliveTrick())
+            diff = monster.getHP() - prevHP
+        else
+            diff = 0. - prevHP
+        boolean result = cb.run(diff, false)
+        prevHP = monster.getHP()
+        if(monster.isAliveTrick())
+            return true and result
+        else
+            cb.run(0., true)
+            return false
+
+function trackMonsterHpEffect(unit monster, real duration, HealthChangeCallback cb)
+    MonsterHealthTracker tracker = new MonsterHealthTracker()
+    tracker.monster = monster
+    tracker.prevHP = monster.getHP()
+    tracker.cb = cb
+    if(duration > 0)
+        tracker.expiresAfter = getElapsedGameTime() + duration
+    hpTrackedMonsters.add(tracker)
+
+
+function startMonsterHpTracking()
+    getTimer().doPeriodically(.10) (CallbackPeriodic cb) ->
+        LLIterator<MonsterHealthTracker> monsters = hpTrackedMonsters.iterator()
+        while(monsters.hasNext())
+            let m = monsters.next()
+            if not m.update()
+                monsters.remove()
+
+LinkedList<unit> unstoppableTanks = new LinkedList<unit>
+timer tankTickTimer = getTimer()
+
+function handleUnstoppableTank(unit tankMonster)
+    unstoppableTanks.add(tankMonster)
+    if(unstoppableTanks.size() == 1)
+        tankTickTimer.doPeriodically(0.1) (CallbackPeriodic cb) ->
+            if(unstoppableTanks.isEmpty())
+                tankTickTimer.pause()
+            else
+                LLIterator<unit> tankItr = unstoppableTanks.iterator()
+                while(tankItr.hasNext())
+                    unit tank = tankItr.next()
+                    if(not tank.isAliveTrick())
+                        tankItr.remove()
+                    else
+                        vec2 translate = tank.getPos() + tank.getFacingAngle().direction(75)
+                        group g = GetUnitsInRangeOfLocAll(75, PTQUtils.vec2ToLoc(translate))
+                        g.forEachFrom() (unit u) ->
+                            if(u.isEnemyOf(tank.getOwner()))
+                                u.explode()
+                        g.destr()
+function attemptToHealFiend(unit fiend)
+    // find any DKs
+    group dks = GetUnitsInRangeOfLocMatching(1000, fiend.getLoc(), Condition(() -> begin
+        return GetFilterUnit().getTypeId() == DETH_NIGHT and GetFilterUnit().isAliveTrick()
+    end))
+    if(dks.hasNext())
+        unit dk = dks.next()
+        dk.setFacing(dk.getPos().angleTo(fiend.getPos()))
+        dk.setAnimation("Spell")
+        new DummyCaster()
+            ..origin(dk.getPos())
+            ..owner(dk.getOwner())
+            ..castTarget(skillCoilEffect, 1, OrderIds.deathcoil, fiend)
+        
+    dks.destr()
+class HpWrapper
+    real hp
 init
+    // Meat Wagon Wagon
     trigger t = CreateTrigger()
     t.registerAnyUnitEvent(EVENT_PLAYER_UNIT_SUMMON)
     t.addCondition(Condition(() -> GetSummonedUnit().getTypeId() == MEAT_WAGON))
     t.addAction(() -> ReplaceUnitBJ(GetSummonedUnit(), MEAT_WAGON, bj_UNIT_STATE_METHOD_DEFAULTS))
+    
+    // Ghoul Jump
+    EventListener.onCast(ghoulJump) (unit caster) ->
+        let target = GetSpellTargetUnit()
+        PTQUtils.enableFlyingForUnit(caster)
+        let distance = caster.getPos().distanceTo(target.getPos())
+        Knockback3.add(caster, distance * 2, caster.getPos().angleTo(target.getPos()), angle(PI / 4))
+        getTimer().doPeriodicallyCounted(.04, 500) (cb) ->
+            if(caster.getPos().distanceTo(target.getPos()) < 100)
+                Knockback3.setVel(caster, 0, angle(0), angle(0))
+                caster.setAnimation("Stand Channel")
+                caster.pause()
+                cb.stop()
+                getTimer().doPeriodicallyCounted(.5, 6) (CallbackCounted cb) ->
+                    flashEffect(Objects.battrollBlood, target.getPos(), 2)
+                    let damage = 100.
+                    caster.damageTarget(target, damage)
+                    caster.setHP(caster.getHP() + damage)
+                    if(not target.isAliveTrick())
+                        cb.stop()
+                    if(cb.isLast() or not target.isAliveTrick())
+                        caster.unpause()
+                        caster.setAnimation("stand")
+    startMonsterHpTracking()
+    EventListener.add(EVENT_PLAYER_UNIT_ATTACKED) () ->
+        let attacked = GetAttackedUnitBJ()
+        if(attacked.getTypeId() == CRYPT_FREND)
+            if(attacked.getHP() < .50 * attacked.getMaxHP())
+                attemptToHealFiend(attacked)
+    EventListener.onCast(healthBind) (unit caster) ->
+        unit target = GetSpellTargetUnit()
+        real duration = 8.0
+        let ln = addLightning(LIGHTNING_SPIRIT_LINK, true, caster.getPos(), target.getPos())
+        trackMonsterHpEffect(target, duration) (diff, last) ->
+            boolean alive = true
+            if(last)
+                ln.destr()
+            else
+                if(not target.isAliveTrick())
+                    alive = false
+                    caster.resetAbilityCooldown(healthBind)
+                else
+                    ln.move(true, caster.getPos(), target.getPos())
+                    if(diff < 0)
+                        caster.addHP(-diff)
+                        target.addHP(diff)
+                if(not alive)
+                    ln.destr()
+            return alive
+    EventListener.onCast(counterStrike) (unit caster) ->
+        int lvl = caster.getAbilityLevel(counterStrike)
+        caster.pause()
+        caster.setAnimation(2)
+        let whp = new HpWrapper()
+        trackMonsterHpEffect(caster, 3.0) (diff, last) ->
+            if(last)
+                caster.setAnimation("Attack Walk Stand Spin")
+                group g = GetUnitsInRangeOfLocAll(200, caster.getLoc())
+                for unit u in g
+                    if(u.isEnemyOf(caster.getOwner()) and not u.isInvulnerable())
+                        caster.damageTarget(u, whp.hp)
+                g.destr()
+                let tim = getTimer()
+                tim.doAfter(.25) () ->
+                    caster.unpause()
+            else if(diff < 0)
+                whp.hp -= (diff * lvl)
+                caster.addHP(-diff)
+            return true
+
+
+    
