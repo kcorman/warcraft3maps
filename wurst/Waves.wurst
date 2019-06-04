@@ -2,6 +2,7 @@ package Waves
 import LinkedList
 import TimerUtils
 import MonsterAbilities
+import ClosureEvents
 import GameInit
 import CustomUnits
 constant player GoodGusy = Player(10)
@@ -37,7 +38,7 @@ constant int UNIT_TRAINER_ABILITY = 'A00P'
 constant rect BAD_GUY_01 = gg_rct_LandBad01
 constant rect BAD_GUY_02 = gg_rct_LandBad02 
 
-int currentWaveIndex = 4
+int currentWaveIndex = 0
 LinkedList<Wave> waves = null
 timerdialog timerDialog
 Wave currentWave
@@ -52,6 +53,7 @@ class Wave
     
     function spawn()
         currentWave = this
+        currentWave.failed = false
         actualUnits = new LinkedList<unit>
         for UnitAndAmount amt in units
             int actualAmt = (amt.relativeAmount * difficultyMultplier).toInt()
@@ -216,6 +218,7 @@ init
         new UnitAndAmount(MEAT_WAGON, 1),
         new UnitAndAmount(ZOMBIEMANCER, 8)
     )))
+    // crashes here
     waves.add(new Wave(toList(
         new UnitAndAmount(LIFE_STEALING_GHOST, 2),
         new UnitAndAmount(GHOUL, 4)
@@ -251,11 +254,6 @@ init
         new UnitAndAmount(STARCHES, 1, true) // boss
     )))
     waves.add(new Wave(toList(
-        new UnitAndAmount(FOOTPERSON, 6),
-        new UnitAndAmount(BOMBERMAN, 2)
-    )))
-
-    waves.add(new Wave(toList(
         new UnitAndAmount(DETH_NIGHT, 1),
         new UnitAndAmount(CRYPT_FREND, 6)
     )))
@@ -280,12 +278,26 @@ init
     waves.add(new Wave(toList(
         new UnitAndAmount(UNSTOPPABLE_TANK, 3) // boss
     )))
+    waves.add(new Wave(toList(
+        new UnitAndAmount(DETH_NIGHT, 2),
+        new UnitAndAmount(CRYPT_FREND, 8),
+        new UnitAndAmount(COIL_SNIPER, 2),
+        new UnitAndAmount(COIL_HYDRA, 1) // boss
+    )))
+    waves.add(new Wave(toList(
+        new UnitAndAmount(GIANT_GHOUL, 10, false) // boss wave, kinda
+    )))
     trigger trig = CreateTrigger()
     trig.registerPlayerChatEvent(Player(0), "next", false)
     trig.addAction(() -> currentWave.forceEnd())
     forceCurrentWaveEnd = () ->
         currentWave.forceEnd()
     startWave()
+    EventListener.add(EVENT_PLAYER_CHAT_FILTER) () ->
+        if(GetEventPlayerChatString().startsWith("-skip "))
+            string val = GetEventPlayerChatString().substring("-skip ".length())
+            currentWaveIndex = val.toInt() - 1
+            currentWave.forceEnd()
 
     trig = CreateTrigger()
     trig.registerAnyUnitEvent(EVENT_PLAYER_UNIT_DEATH)

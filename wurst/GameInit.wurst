@@ -240,8 +240,8 @@ init
 
     //unit u = createUnit(Player(0), BLADE_MISTRESS, gg_rct_BanditCamp.getCenter(), angle(0))
     //u.setLevel(12, true)
-    //unit u = createUnit(Player(0), UNSTOPPABLE_TANK, gg_rct_helperArea.getCenter(), angle(0))
-    //monsterCreated(u)
+    unit u = createUnit(Player(0), SYLAR, gg_rct_helperArea.getCenter(), angle(0))
+    monsterCreated(u)
     weaponShop = createUnit(Player(10), WEAPON_SHOP, WEAPON_SHOP_LOC, angle(0.))
     EventListener.add(EVENT_PLAYER_CHAT_FILTER) () ->
         if(GetEventPlayerChatString() == "-settings")

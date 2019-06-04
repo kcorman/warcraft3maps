@@ -1,0 +1,109 @@
+package SylarKeeper
+import ClosureEvents
+import CustomAbilities
+import GameTimer
+import ClosureTimers
+import TimerUtils
+import ClosureForGroups
+import Vectors
+import Effect
+import Assets
+import OrderIds
+import HashSet
+import Lightning
+import DummyCaster
+import Knockback3
+import LinkedList
+import HashList
+import HashMap
+import PTQConstants
+import CustomUnits
+
+constant LinkedList<int> SYLAR_DUMMY_ABILITIES = new LinkedList<int>
+
+// Map of all abilities known by all friendly heros. There's currently no way to get this
+// from the unit data at runtime so we have to build it up as heroes learn abilities
+HashMap<unit, HashSet<int>> learnedHeroAbilities = new HashMap<unit, HashSet<int>>
+
+// map from <sylars> to the currently stolen ability ID that they currently have
+HashMap<unit, int> currentlyStolenAbility = new HashMap<unit, int>
+
+function setUpDummyAbility(int dummyId, int learnedAbilityId, int stealLevel)
+    BlzSetAbilityIcon(dummyId, BlzGetAbilityIcon(learnedAbilityId))
+    BlzSetAbilityTooltip(dummyId, "Steal Ability: " + BlzGetAbilityTooltip(learnedAbilityId, stealLevel), 0)
+    BlzSetAbilityExtendedTooltip(dummyId, BlzGetAbilityExtendedTooltip(learnedAbilityId, stealLevel), 0)
+init
+    SYLAR_DUMMY_ABILITIES.add(sylarLearnAbility0)
+    SYLAR_DUMMY_ABILITIES.add(sylarLearnAbility1)
+    SYLAR_DUMMY_ABILITIES.add(sylarLearnAbility2)
+    // Handle collecting all learned hero skills
+    EventListener.add(EVENT_PLAYER_HERO_SKILL) () ->
+        let caster = GetLearningUnit()
+        let spell = GetLearnedSkill()
+        if(caster.getOwner().isAllyOf(Player(10)))
+            var s = learnedHeroAbilities.get(caster)
+            if(s == null)
+                s = new HashSet<int>
+                learnedHeroAbilities.put(caster, s)
+            s.add(spell)
+
+    // Handle leveling up a stolen ability when the Steal Ability skill is leveled up
+    EventListener.add(EVENT_PLAYER_HERO_SKILL) () ->
+        let spell = GetLearnedSkill()
+        if(spell == learnAbility)
+            let caster = GetLearningUnit()
+            let lvl = caster.getAbilityLevel(learnAbility)
+            if(currentlyStolenAbility.has(caster))
+                caster.setAbilityLevel(currentlyStolenAbility.get(caster), lvl)
+     
+    // Handle cases where we don't allow steal ability
+    EventListener.add(EVENT_PLAYER_UNIT_SPELL_CAST) () ->
+        let caster = GetSpellAbilityUnit()
+        let spell = GetSpellAbilityId()
+        if(spell == learnAbility)
+            let target = GetSpellTargetUnit()
+            boolean willCast = false
+            if(target.getHP() / target.getMaxHP() > .5)
+                printTimedToPlayer("Target must be below 50% health to pick their brain", 3, caster.getOwner())
+            else if(not learnedHeroAbilities.has(target)) 
+                printTimedToPlayer("Target has not learned any abilities yet", 3, caster.getOwner())
+            else if (caster == target)
+                printTimedToPlayer("Cannot cast on yourself (although that would be funny)", 3, caster.getOwner())
+            else
+                willCast = true
+            if(not willCast)
+                caster.issueImmediateOrder("stop") 
+    // Handle the actual cast mechanics of steal ability. Whew
+    EventListener.onCast(learnAbility) (unit caster) ->
+        let target = GetSpellTargetUnit()
+        if(learnedHeroAbilities.has(target))
+            if(currentlyStolenAbility.has(caster))
+                caster.removeAbility(currentlyStolenAbility.get(caster))
+            let abilSet = learnedHeroAbilities.get(target)
+            let stealLevel = caster.getAbilityLevel(learnAbility)
+            unit u = CreateUnit(caster.getOwner(), SYLAR_LEARN_ABILITY_SHOP, 0, 0, 0)
+            caster.getOwner().selectSingle(u)
+            HashMap<int, int> abilityMap = new HashMap<int, int>
+            var i = 0
+            for int potentialAbility in abilSet
+                abilityMap.put(SYLAR_DUMMY_ABILITIES.get(i), potentialAbility)
+                i++
+            for int dummyAbility in SYLAR_DUMMY_ABILITIES
+                if(abilityMap.has(dummyAbility))
+                    u.addAbility(dummyAbility)
+                    if(GetLocalPlayer() == caster.getOwner())
+                        setUpDummyAbility(dummyAbility, abilityMap.get(dummyAbility), stealLevel)
+            // TODO: This leaks a handler every time the steal ability move is used
+            // Set up a handler so when the player selects an ability, they gain that on their hero
+            EventListener.onCast(u) (int id) ->
+                if(abilityMap.has(id))
+                    let newAbil = abilityMap.get(id)
+                    caster.addAbility(newAbil)
+                    currentlyStolenAbility.put(caster, newAbil)
+                    caster.getOwner().selectSingle(caster)
+                    caster.setAbilityLevel(newAbil, stealLevel)
+                    u.remove()
+                    if(GetLocalPlayer() == caster.getOwner())
+                        BlzSetAbilityPosX(newAbil, 0)
+                        BlzSetAbilityPosY(newAbil, 2)
+                

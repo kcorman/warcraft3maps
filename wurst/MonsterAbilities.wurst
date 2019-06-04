@@ -9,6 +9,7 @@ import Vectors
 import Effect
 import Assets
 import OrderIds
+import HashSet
 import Lightning
 import DummyCaster
 import Knockback3
@@ -24,7 +25,6 @@ interface HealthChangeCallback
 
 LinkedList<MonsterHealthTracker> hpTrackedMonsters = new LinkedList<MonsterHealthTracker>
 LinkedList<CoilTracker> coilList = new LinkedList<CoilTracker>
-
 class CoilTracker
     unit coil
     unit caster
@@ -39,12 +39,14 @@ public function monsterCreated(unit monster)
             createHydraCoil(monster)
         
 timer coilTimer = null
+        
+
 public function createHydraCoil(unit caster)
     unit u = CreateUnit(caster.getOwner(), COIL_UNIT, caster.getX(), caster.getY(), caster.getFacing())
     CoilTracker tracker = new CoilTracker()
     tracker.coil = u
     tracker.caster = caster
-    tracker.light = addLightning(LIGHTNING_CHAIN_LIGHTNING_PRIMARY, true, caster.getPos(), u.getPos())
+    tracker.light = addLightning(LIGHTNING_CHAIN_LIGHTNING_PRIMARY, false, caster.getPos3with(1000), u.getPos3with(1000))
     tracker.light.setColor(colorA(25, 180, 69, 255))
     coilList.add(tracker)
     if(coilTimer == null)
@@ -61,7 +63,7 @@ public function startCoilTimer()
                 itr.remove()
                 trk.light.destr()
             else if(trk.coil.isAliveTrick())
-                trk.light.move(true, trk.caster.getPos(), trk.coil.getPos())
+                trk.light.move(false, trk.caster.getPos3with(700), trk.coil.getPos3with(700))
                 if(trk.coil.getPos().distanceTo(trk.caster.getPos()) > 500)
                     trk.coil.issuePointOrder("attack", trk.caster.getPos())
             else
@@ -225,6 +227,8 @@ init
                 whp.hp -= (diff * lvl)
                 caster.addHP(-diff)
             return true
+    
+            
 
 
     
