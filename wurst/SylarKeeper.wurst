@@ -5,6 +5,7 @@ import GameTimer
 import ClosureTimers
 import TimerUtils
 import ClosureForGroups
+import Texttag
 import Vectors
 import Effect
 import Assets
@@ -13,11 +14,12 @@ import HashSet
 import Lightning
 import DummyCaster
 import Knockback3
+import AbilityUtils
 import LinkedList
+import CustomUnits
 import HashList
 import HashMap
 import PTQConstants
-import CustomUnits
 
 constant LinkedList<int> SYLAR_DUMMY_ABILITIES = new LinkedList<int>
 
@@ -63,9 +65,7 @@ init
         if(spell == learnAbility)
             let target = GetSpellTargetUnit()
             boolean willCast = false
-            if(target.getHP() / target.getMaxHP() > .5)
-                printTimedToPlayer("Target must be below 50% health to pick their brain", 3, caster.getOwner())
-            else if(not learnedHeroAbilities.has(target)) 
+            if(not learnedHeroAbilities.has(target)) 
                 printTimedToPlayer("Target has not learned any abilities yet", 3, caster.getOwner())
             else if (caster == target)
                 printTimedToPlayer("Cannot cast on yourself (although that would be funny)", 3, caster.getOwner())
@@ -79,6 +79,9 @@ init
         if(learnedHeroAbilities.has(target))
             if(currentlyStolenAbility.has(caster))
                 caster.removeAbility(currentlyStolenAbility.get(caster))
+            target.setHP(target.getHP() / 4)
+            SetUnitFacingToFaceUnitTimed(target, caster, .5)
+            flashEffect(Abilities.thunderclapTarget, target, "head")
             let abilSet = learnedHeroAbilities.get(target)
             let stealLevel = caster.getAbilityLevel(learnAbility)
             unit u = CreateUnit(caster.getOwner(), SYLAR_LEARN_ABILITY_SHOP, 0, 0, 0)
@@ -93,8 +96,10 @@ init
                     u.addAbility(dummyAbility)
                     if(GetLocalPlayer() == caster.getOwner())
                         setUpDummyAbility(dummyAbility, abilityMap.get(dummyAbility), stealLevel)
-            // TODO: This leaks a handler every time the steal ability move is used
-            // Set up a handler so when the player selects an ability, they gain that on their hero
+            timer keepSelection = getTimer()
+            keepSelection.doPeriodically(.25) (CallbackPeriodic cb) ->
+                // hacky way to keep the selection on the dummy store unit until the user makes a selection
+                caster.getOwner().selectSingle(u)
             EventListener.onCast(u) (int id) ->
                 if(abilityMap.has(id))
                     let newAbil = abilityMap.get(id)
@@ -103,7 +108,74 @@ init
                     caster.getOwner().selectSingle(caster)
                     caster.setAbilityLevel(newAbil, stealLevel)
                     u.remove()
+                    unregisterEventsForUnit(u)
+                    keepSelection.release()
                     if(GetLocalPlayer() == caster.getOwner())
                         BlzSetAbilityPosX(newAbil, 0)
                         BlzSetAbilityPosY(newAbil, 2)
-                
+    
+    // Telekenesis!
+    EventListener.onCast(telekenesis) (unit caster) ->
+        let lvl = caster.getAbilityLevel(telekenesis)
+        let target = getSpellTargetPos()
+        let duration = (2 + lvl * 2).toReal()
+        group affected = GetUnitsInRangeOfLocAll((200 + (100 * lvl)).toReal(), GetSpellTargetLoc())
+        boolean casterIsAffected = false
+        for unit u in affected
+            if(IsUnitType(u, UNIT_TYPE_STRUCTURE))
+                affected.removeUnit(u)
+            if(u == caster)
+                casterIsAffected = true
+        let cursor = CreateUnit(caster.getOwner(), DUMMY_CURSOR, target.x, target.y, 0)
+        cursor.setTimedLife(duration)
+        timer t = getTimer()
+        caster.getOwner().selectSingle(cursor)
+        t.doPeriodicallyTimed(.04, duration) (CallbackCounted cb) ->
+            if(cb.isLast() or (not casterIsAffected and not caster.isChannelingAbility(telekenesis)))
+                caster.getOwner().selectSingle(caster)
+                cb.stop()
+                affected.destr()
+            else
+                for unit u in affected
+                    let movementAmount = min(u.getPos().distanceTo(cursor.getPos()) / 10, (lvl * 20).toReal())
+                    u.setPos(u.getPos().moveTowards(cursor.getPos(), movementAmount))
+    // Clock!
+    EventListener.onCast(sylarWatch) (unit caster) ->
+        print("Cast clock")
+        let lvl = caster.getAbilityLevel(sylarWatch)
+        let target = getSpellTargetPos()
+        let targetLoc = GetSpellTargetLoc()
+        let rotations = lvl
+        let radius =  (100 + 100 * lvl).toReal()
+        let timePerRotation = 5.0
+        let dmg = lvl * 200
+        vec2 start = target
+        vec2 e = target.add(0, -radius)
+        vec2 segment = e - start
+        let lg = addLightning(LIGHTNING_CHAIN_LIGHTNING_PRIMARY, true, start, e)
+        getTimer().doPeriodicallyTimed(1.0, timePerRotation * rotations) (CallbackCounted cb) ->
+            group g = GetUnitsInRangeOfLocAll(radius, targetLoc)
+            for u in g
+                if(u.isEnemyOf(caster.getOwner()))
+                    caster.damageTarget(u, dmg.toReal())
+                    flashEffect(Abilities.lightningBoltMissile, u, "head")
+            g.destr()
+            for i = 1 to 12
+                vec2 t = start + segment.rotate(angle(PI/6) * i.toReal())
+                flashEffect(Abilities.lightningShieldBuff, t)
+        RealWrapper mult = new RealWrapper()
+        real ticksPerRotation = timePerRotation / .10
+        real movementAmt = 1 / ticksPerRotation
+        getTimer().doPeriodicallyTimed(.10, timePerRotation * rotations) (CallbackCounted cb) ->
+            let ee = start + segment.rotate(angle(-PI * 2 * mult.val))
+            mult.val += movementAmt
+            lg.move(true, start, ee)
+            if(cb.isLast())
+                lg.destr()
+        
+
+    EventListener.add(EVENT_PLAYER_UNIT_ISSUED_POINT_ORDER) () ->
+        if(GetOrderedUnit().getTypeId() == DUMMY_CURSOR)
+            GetOrderedUnit().setPos(getOrderPos())
+class RealWrapper
+    real val

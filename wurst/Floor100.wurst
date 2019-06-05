@@ -9,12 +9,15 @@ constant SoundDefinition floor100snd = new SoundDefinition("war3mapImported\\Flo
 class Floor100
     unit caster
     unit hellivator
+    real damage
     group affectedUnits
     int abilityLvl
 
     construct(unit caster)
         this.caster = caster
         this.abilityLvl = caster.getAbilityLevel(FLOOR_100)
+        damage = abilityLvl * 300.0 + abilityLvl * caster.getBaseDamage(0) * 5
+        print("Damage is " + damage.toString() + ", base dmg = " + caster.getBaseDamage(0).toString())
         timer t = getTimer()
         t.setData(this castTo int)
         t.start(2, () -> begin
@@ -54,7 +57,7 @@ class Floor100
             u.show()
             u.setInvulnerable(false)
             if(u != caster)
-                caster.damageTarget(u, abilityLvl * 400.0 + 200)
+                caster.damageTarget(u, damage)
         destroy this
     static function onCast(unit caster)
         new Floor100(caster)
