@@ -1,0 +1,12 @@
+package Loot
+import ClosureEvents
+
+int ITEM_LUMBER = 'lmbr'
+int ITEM_GOLD = 'gold'
+
+init
+    EventListener.add(EVENT_PLAYER_UNIT_DEATH) () ->
+        if(GetRandomReal(0, 1.) > .96)
+            createItem(ITEM_LUMBER, GetDyingUnit().getPos())
+        else if (GetRandomReal(0, 1) > .96)
+            createItem(ITEM_GOLD, GetDyingUnit().getPos())

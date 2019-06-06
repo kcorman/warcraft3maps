@@ -8,6 +8,7 @@ import CustomUnits
 import ClosureEvents
 import MonsterAbilities
 import DialogBox
+import UnitTrainers
 
 constant int FOOTMAN = 'hfoo'
 constant int SORCERESS = 'hsor'
@@ -20,8 +21,6 @@ constant int BAD_NEXUS_TYPE = 'n002'
 constant int VILLAGER = 'u000'
 constant int INITIAL_GOLD = 9001
 constant int INITIAL_WOOD = 200
-constant int UNIT_TRAINER_ABILITY = 'A00P'
-constant int SELLS_UNIT_TRAINERS = 'A01D'
 constant vec2 SHOP1LOC = vec2(7318., -12387.)
 constant vec2 MERC1LOC = vec2(9390., -11863.)
 constant vec2 WEAPON_SHOP_LOC = vec2(8744., -11817.)
@@ -209,7 +208,9 @@ init
             Utils.friendlies.put(p, Utils.badGusy) 
         FriendlyStuff fs = Utils.friendlies.get(p)
 
-        createUnit(p, VILLAGER, fs.tavern.getPos() + vec2(0, 200), angle(0))
+        unit vlg = createUnit(p, VILLAGER, gg_rct_cooltavern.getCenter() + vec2(0, 200), angle(0))
+        //vlg.hide()
+        //vlg.setInvulnerable(true)
         p.addGold(INITIAL_GOLD)
         p.addLumber(INITIAL_WOOD)
 
@@ -232,11 +233,7 @@ init
             GetEnumPlayer().addGold(GetDyingUnit().getLevel() * 10)
         end)
     end)
-    EventListener.add(EVENT_PLAYER_UNIT_SELL) () ->
-        if(GetSellingUnit().hasAbility(SELLS_UNIT_TRAINERS))
-            flashEffect(Abilities.darkSummonTarget, GetSoldUnit().getPos())
-            flashEffect(Abilities.darkPortalTarget, GetSoldUnit(), AttachmentPoints.origin)
-            GetSoldUnit().setPos(gg_rct_trainingArea.getCenter())
+
 
     unit u = createUnit(Player(0), coolTavern, gg_rct_cooltavern.getCenter(), angle(0))
     //u.setLevel(12, true)

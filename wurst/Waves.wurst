@@ -4,10 +4,13 @@ import TimerUtils
 import MonsterAbilities
 import ClosureEvents
 import GameInit
+import UnitTrainers
+import Units
 import CustomUnits
 constant player GoodGusy = Player(10)
 constant player BadGuy = Player(11)
 constant int NUM_WAVES = 13
+constant int MAX_GOOD_UNITS = 5
 constant int FOOTMAN = 'hfoo'
 constant int SORCERESS = 'hsor'
 constant int GHOUL = 'ugho'
@@ -37,6 +40,7 @@ constant int INITIAL_WOOD = 200
 constant int UNIT_TRAINER_ABILITY = 'A00P'
 constant rect BAD_GUY_01 = gg_rct_LandBad01
 constant rect BAD_GUY_02 = gg_rct_LandBad02 
+LinkedList<unit> goodUnits = new LinkedList<unit>
 
 int currentWaveIndex = 0
 LinkedList<Wave> waves = null
@@ -104,17 +108,26 @@ class Wave
             u.issuePointOrder("attack", THE_BANDIT.getPos())
         g.destr()
 
+function purgeDeadUnits()
+    LLIterator<unit> itr = goodUnits.iterator()
+    while(itr.hasNext())
+        unit u = itr.next()
+        if(not u.isAlive())
+            itr.remove()
 function spawnGoodGusy()
-    group g = GetUnitsInRectMatching(gg_rct_trainingArea, Condition(() -> begin
-        return GetFilterUnit().getOwner().isAllyOf(GoodGusy) and GetFilterUnit().isAliveTrick() and 
-            not GetFilterUnit().isType(UNIT_TYPE_MECHANICAL) and not GetFilterUnit().isType(UNIT_TYPE_HERO)
-            and GetFilterUnit().getTypeId() != 'u000'
-    end))
-    for unit u in g
-        vec2 vec = gg_rct_helperArea.getCenter()
-        CreateUnit(GoodGusy, u.getTypeId(), vec.x, vec.y, 4)
-    g.destr()
-
+    purgeDeadUnits()
+    while(goodUnits.size() > MAX_GOOD_UNITS)
+        goodUnits.pop().explode()
+    LinkedList<unit> trainers = getUnitTrainers()
+    LLIterator<unit> itr = trainers.iterator()
+    vec2 spawnSpot = gg_rct_helperArea.getCenter()
+    while(itr.hasNext())
+        unit template = itr.next()
+        if(template.isAliveTrick())
+            unit u = createUnit(GoodGusy, template.getTypeId(), spawnSpot, angle(0))
+            goodUnits.add(u)
+        else
+            itr.remove()
 
 
 function startWave()
@@ -162,6 +175,7 @@ init
 
 
     waves = new LinkedList<Wave>
+
 
     waves.add(new Wave(toList(
         new UnitAndAmount(ZOMBIE, 5)
@@ -275,9 +289,7 @@ init
     waves.add(new Wave(toList(
         new UnitAndAmount(UNSTOPPABLE_TANK, 1) // boss
     )))
-    waves.add(new Wave(toList(
-        new UnitAndAmount(UNSTOPPABLE_TANK, 3) // boss
-    )))
+
     waves.add(new Wave(toList(
         new UnitAndAmount(DETH_NIGHT, 2),
         new UnitAndAmount(CRYPT_FREND, 8),
@@ -286,6 +298,10 @@ init
     )))
     waves.add(new Wave(toList(
         new UnitAndAmount(GIANT_GHOUL, 10, false) // boss wave, kinda
+    )))
+    waves.add(new Wave(toList(
+        new UnitAndAmount(COIL_HYDRA, 1), // boss
+        new UnitAndAmount(UNSTOPPABLE_TANK, 2)
     )))
     trigger trig = CreateTrigger()
     trig.registerPlayerChatEvent(Player(0), "next", false)

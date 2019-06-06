@@ -129,8 +129,8 @@ function handleUnstoppableTank(unit tankMonster)
                     if(not tank.isAliveTrick())
                         tankItr.remove()
                     else
-                        vec2 translate = tank.getPos() + tank.getFacingAngle().direction(75)
-                        group g = GetUnitsInRangeOfLocAll(75, PTQUtils.vec2ToLoc(translate))
+                        vec2 translate = tank.getPos() + tank.getFacingAngle().direction(250)
+                        group g = GetUnitsInRangeOfLocAll(150, PTQUtils.vec2ToLoc(translate))
                         g.forEachFrom() (unit u) ->
                             if(u.isEnemyOf(tank.getOwner()))
                                 u.explode()

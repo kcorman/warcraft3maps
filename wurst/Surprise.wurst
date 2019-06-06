@@ -1,6 +1,7 @@
 package Surprise
 import SoundUtils
 import TimerUtils
+import ClosureTimers
 constant int abilityId = 'A00I'
 constant SoundDefinition snd = new SoundDefinition("war3mapImported\\Any Questions 2.mp3", false)
 class DoSurprise
@@ -25,14 +26,16 @@ class DoSurprise
             s.doFear()
         end)
     function doFear()
+        let time = 2. + (caster.getInt(true) / 100) * caster.getAbilityLevel(abilityId)
+        print("Time = " + time.toString())
         target.issuePointOrder("move", caster.getPos().polarOffset(caster.getFacingAngle(), 400))
         e = AddSpecialEffectTarget("Abilities\\Spells\\Other\\HowlOfTerror\\HowlTarget.mdl", target, "overhead")
+        
         timer t = getTimer()
-        t.setData(this castTo int)
-        t.start(2, () -> begin
-            DoSurprise s = (GetExpiredTimer().getData() castTo DoSurprise)
-            s.e.destr()
-        end)
+        t.doPeriodicallyTimed(.25, time) (CallbackCounted cb) ->
+            target.issuePointOrder("move", caster.getPos().polarOffset(caster.getFacingAngle(), 400))
+            if(cb.isLast())
+                e.destr()
 
 init
     trigger t = CreateTrigger()

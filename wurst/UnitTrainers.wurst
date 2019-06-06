@@ -1,0 +1,26 @@
+package UnitTrainers
+import ClosureEvents
+import LinkedList
+import Assets
+import Units
+
+public constant int UNIT_TRAINER_ABILITY = 'A00P'
+public constant int SELLS_UNIT_TRAINERS = 'A01D'
+constant int BANDIT_MERC_CAMP = 'h00H'
+constant int BANDIT_MERC_FORT = 'h00G'
+LinkedList<unit> allTrainers = new LinkedList<unit>
+public function getUnitTrainers() returns LinkedList<unit>
+    return allTrainers
+init
+    EventListener.add(EVENT_PLAYER_UNIT_SELL) () ->
+        if(GetSellingUnit().hasAbility(SELLS_UNIT_TRAINERS))
+            allTrainers.add(GetSoldUnit())
+            GetSoldUnit().addAbility(UNIT_TRAINER_ABILITY)
+            //flashEffect(Abilities.darkSummonTarget, GetSoldUnit().getPos())
+            //flashEffect(Abilities.darkPortalTarget, GetSoldUnit(), AttachmentPoints.origin)
+            //GetSoldUnit().setPos(gg_rct_trainingArea.getCenter())
+    EventListener.add(EVENT_PLAYER_UNIT_UPGRADE_FINISH) () ->
+        let u = GetTriggerUnit()
+        if(u.getTypeId() == BANDIT_MERC_FORT)
+            u.kill()
+            createUnit(u.getOwner(), BANDIT_MERC_FORT, u.getPos(), u.getFacingAngle())

@@ -122,7 +122,7 @@ init
         group affected = GetUnitsInRangeOfLocAll((200 + (100 * lvl)).toReal(), GetSpellTargetLoc())
         boolean casterIsAffected = false
         for unit u in affected
-            if(IsUnitType(u, UNIT_TYPE_STRUCTURE))
+            if(IsUnitType(u, UNIT_TYPE_STRUCTURE) or u.getTypeId() == UNSTOPPABLE_TANK)
                 affected.removeUnit(u)
             if(u == caster)
                 casterIsAffected = true
@@ -141,14 +141,14 @@ init
                     u.setPos(u.getPos().moveTowards(cursor.getPos(), movementAmount))
     // Clock!
     EventListener.onCast(sylarWatch) (unit caster) ->
-        print("Cast clock")
         let lvl = caster.getAbilityLevel(sylarWatch)
         let target = getSpellTargetPos()
         let targetLoc = GetSpellTargetLoc()
         let rotations = lvl
         let radius =  (100 + 100 * lvl).toReal()
         let timePerRotation = 5.0
-        let dmg = lvl * 200
+        let intelligence = caster.getInt(true)
+        let dmg = lvl * 100 + lvl * intelligence
         vec2 start = target
         vec2 e = target.add(0, -radius)
         vec2 segment = e - start
@@ -173,7 +173,10 @@ init
             if(cb.isLast())
                 lg.destr()
         
-
+    EventListener.onCast(sylarFrostNova) (caster) ->
+        let additionalDmg = caster.getInt(true) * caster.getAbilityLevel(sylarFrostNova)
+        let target = GetSpellTargetUnit()
+        caster.damageTarget(target, additionalDmg.toReal())
     EventListener.add(EVENT_PLAYER_UNIT_ISSUED_POINT_ORDER) () ->
         if(GetOrderedUnit().getTypeId() == DUMMY_CURSOR)
             GetOrderedUnit().setPos(getOrderPos())
