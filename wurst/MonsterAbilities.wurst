@@ -227,7 +227,24 @@ init
                 whp.hp -= (diff * lvl)
                 caster.addHP(-diff)
             return true
-    
+    EventListener.onCast('A01L') (unit caster) -> // demonic teleport
+        let target = getSpellTargetPos()
+        addEffect(Abilities.flameStrike, caster.getPos())
+        caster.setAnimation("Stand Work")
+        getTimer().doAfter(.5) () ->
+            caster.hide()
+            caster.setInvulnerable(true)
+            addEffect(Abilities.flameStrike, target)
+        getTimer().doAfter(2) () ->
+            caster.setPos(target)
+            caster.setInvulnerable(false)
+            ResetUnitAnimation(caster)
+            caster.show()
+            group g = GetUnitsInRangeOfLocAll(300, PTQUtils.vec2ToLoc(target))
+            for unit u in g
+                if(u.isEnemyOf(caster.getOwner()))
+                    caster.damageTarget(u, 300)
+                    flashEffect(Abilities.flameStrikeDamageTarget, u, "chest")
             
 
 

@@ -4,11 +4,10 @@ import TimerUtils
 import MonsterAbilities
 import ClosureEvents
 import GameInit
+import PTQConstants
 import UnitTrainers
 import Units
 import CustomUnits
-constant player GoodGusy = Player(10)
-constant player BadGuy = Player(11)
 constant int NUM_WAVES = 13
 constant int MAX_GOOD_UNITS = 5
 constant int FOOTMAN = 'hfoo'

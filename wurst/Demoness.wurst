@@ -1,0 +1,203 @@
+package Demoness
+import ClosureEvents
+import CustomAbilities
+import GameTimer
+import ClosureTimers
+import TimerUtils
+import ClosureForGroups
+import Texttag
+import Vectors
+import GameInit
+import Effect
+import Assets
+import OrderIds
+import HashSet
+import Lightning
+import DummyCaster
+import SoundUtils
+import Knockback3
+import AbilityUtils
+import LinkedList
+import CustomUnits
+import HashList
+import HashMap
+import PTQConstants
+
+constant SoundDefinition whip = new SoundDefinition(Sounds.ancestralGuardianHit1, false)
+constant SoundDefinition fire = new SoundDefinition(Sounds.breathOfFire1, false)
+constant SoundDefinition poss = new SoundDefinition(Sounds.possessionMissileLaunch1, false)
+constant int MAX_WYRM_SOULS = 50
+
+
+HashMap<unit, NumWrapper> soulCount = new HashMap<unit, NumWrapper>
+HashMap<int, int> spellSoulCost = new HashMap<int, int>
+
+function doFeedSoul(unit wyrm, unit master) returns boolean
+    let remainingSouls = getSoulCount(master)
+    var done = false
+    if(not wyrm.isAliveTrick() or not master.isAliveTrick() or not wyrm.isChannelingAbility(CONSUME_SOUL))
+        done = true
+    if(getSoulCount(wyrm) >= MAX_WYRM_SOULS)
+        printTimedToPlayer("Wyrm already has the max number of souls (" + MAX_WYRM_SOULS.toString() + ")", 3, master.getOwner())
+        done = true
+    if(remainingSouls <= 0)
+        printTimedToPlayer("Not enough souls. Collect more souls before attempting to feed the wyrm", 3, master.getOwner())
+        done = true
+    if(done)
+        wyrm.issueImmediateOrder("stop")
+        master.issueImmediateOrder("stop")
+        ResetUnitAnimation(master)
+        ResetUnitAnimation(wyrm)
+        master.unpause()
+    else
+        poss.playOnPoint(wyrm.getPos3Real())
+        incrementSoulCount(wyrm, 1)
+        incrementSoulCount(master, -1)
+        wyrm.setBaseDamage(wyrm.getBaseDamage(0) + 10, 0)
+        wyrm.setMaxHP((wyrm.getMaxHP() + 50).toInt(), true)
+        let scale = 1 + (getSoulCount(wyrm) - 10) * .05
+        wyrm.setScale(scale)
+        let lgt = addLightning(LIGHTNING_DRAIN_MANA, true, master.getPos(), wyrm.getPos())
+        getTimer().doAfter(.25) () ->
+            lgt.destr()
+    return done
+
+class NumWrapper
+    int val = 0
+function getSoulCount(unit u) returns int
+    let wrp = soulCount.get(u)
+    if(wrp == null)
+        return 0
+    return wrp.val
+function incrementSoulCount(unit u, int delta)
+    var wrp = soulCount.get(u)
+    if(wrp == null)
+        wrp = new NumWrapper()
+        soulCount.put(u, wrp)
+    wrp.val += delta
+
+init
+    spellSoulCost.put(SUMMON_SOUL_WYRM, 10)
+    spellSoulCost.put(SOUL_FIRE, 1)
+        
+    // Soul harvesting
+    EventListener.add(EVENT_PLAYER_UNIT_DEATH) () ->
+        let killer = GetKillingUnit()
+        if(killer.hasAbility(HARVEST_SOULS))
+            incrementSoulCount(killer, 1)
+            texttag t = null
+            if(killer.getOwner() == GetLocalPlayer())
+                t = CreateTextTagUnitBJ("+1 Soul", GetDyingUnit(), 50, 10, 50, 0, 255, 0)
+            getTimer().doAfter(1.) () ->
+                if(t != null)
+                    t.destr()
+    // Seduce
+    EventListener.onCast(SEDUCE) (unit caster) ->
+        let target = getSpellTargetPos()
+        group affected = GetUnitsInRangeOfLocAll(250, PTQUtils.vec2ToLoc(target))
+        HashMap<unit, player> ogOwner = new HashMap<unit, player>
+        for unit u in affected
+            if(not u.isEnemyOf(caster.getOwner()))
+                affected.removeUnit(u)
+            else
+                ogOwner.put(u, u.getOwner())
+                u.setOwner(getComputerAlly(caster.getOwner()), true)
+                flashEffect(Abilities.charmTarget, u, "overhead")
+        getTimer().doPeriodicallyTimed(.10, 20) (CallbackCounted cb) ->
+            if(not caster.isChannelingAbility(SEDUCE))
+                for unit u in affected 
+                    u.setOwner(ogOwner.get(u), true)
+                    flashEffect(Abilities.dispelMagicTarget, u, "overhead")
+                cb.stop()
+                affected.destr()
+    // Demon dash
+    EventListener.onCast(DEMON_DASH) (unit caster) ->
+        flashEffect(Abilities.redDragonMissile, caster.getPos())
+        let target = GetSpellTargetUnit()
+        let lvl = caster.getAbilityLevel(DEMON_DASH)
+        SetUnitFacingToFaceUnitTimed(caster, target, 0)
+        let dmg = 50 + lvl * caster.getBaseDamage(0).toReal()
+        let targetWithOffset = target.getPos().moveTowards(caster.getPos(), 100)
+        caster.setPos(targetWithOffset)
+        caster.setAnimation("attack slam")
+        caster.pause()
+        flashEffect(Abilities.redDragonMissile, targetWithOffset)
+        getTimer().doAfter(.35) () ->
+            whip.playOnPoint(targetWithOffset.toVec3())
+        getTimer().doAfter(.75) () ->
+            caster.damageTarget(target, dmg, true, false, ATTACK_TYPE_NORMAL, DAMAGE_TYPE_NORMAL, WEAPON_TYPE_CLAW_LIGHT_SLICE)
+            caster.unpause()
+            ResetUnitAnimation(caster)
+            if(not target.isAliveTrick())
+                caster.addMana(45)
+                caster.resetAbilityCooldown(DEMON_DASH)
+            else
+                caster.issueTargetOrder("attack", target)
+    // Soul fire
+    EventListener.onCast(SOUL_FIRE) (unit caster) ->
+        let target = getSpellTargetPos()
+        let origin = caster.getPos().moveTowards(target, 50)
+        fire.playOnPoint(origin.toVec3())
+        effect e = addEffect("Objects\\Spawnmodels\\Other\\FlameThrower\\FlameThrowerSpawnObj.mdl", origin)
+        e.setYaw(caster.getPos().angleTo(target))
+        e.setColor(0, 255, 0)
+        e.setScale(3.0)
+        let souls = getSoulCount(caster)
+        incrementSoulCount(caster, -1)
+        let soulDamage = souls * 25
+        let lvl = caster.getAbilityLevel(SOUL_FIRE)
+        let maxDamage = 250 * lvl
+        let dmg = 50 * lvl + min(maxDamage, soulDamage).toReal()
+        group damaged = GetUnitsInRangeOfLocAll(500, PTQUtils.vec2ToLoc(origin))
+        print("Damage = " + dmg.toString())
+        for u in damaged
+            if(not u.isEnemyOf(caster.getOwner()) or SquareRoot(u.getPos().distanceToSegmentSq(caster.getPos(), target)) > 50)
+                damaged.removeUnit(u)
+            else
+                caster.damageTarget(u, dmg)
+        getTimer().doAfter(1.0) () ->
+            e.destr()
+    // Soul Wyrm
+    EventListener.onCast(SUMMON_SOUL_WYRM) (unit caster) ->
+        let cost = spellSoulCost.get(SUMMON_SOUL_WYRM)
+        let target = getSpellTargetPos()
+        incrementSoulCount(caster, -cost)
+        getTimer().doAfter(2) () ->
+            let lgt = addLightning(LIGHTNING_MAGIC_LEASH, true, caster.getPos(), target)
+            print ("Creating soul wyrm")
+            unit wyrm = createUnit(caster.getOwner(), SOUL_WYRM, target, caster.getFacingAngle())
+            incrementSoulCount(wyrm, 10)
+            getTimer().doAfter(.5) () ->
+                lgt.destr()
+    
+    // Feel Soul Wyrm
+    EventListener.onCast(CONSUME_SOUL) (unit caster) ->
+        let target = GetSpellTargetUnit()
+        target.setAnimation("spell channel")
+        SetUnitFacingToFaceUnitTimed(target, caster, 0)
+        target.pause()
+        getTimer().doPeriodicallyTimed(.4, 400) (CallbackCounted cb) ->
+            if(doFeedSoul(caster, target)) 
+                cb.stop()
+
+    EventListener.add(EVENT_PLAYER_UNIT_SPELL_CAST) () ->
+        let spell = GetSpellAbilityId()
+        let caster = GetSpellAbilityUnit()
+        if(spell == CONSUME_SOUL)
+            let soulCount = getSoulCount(GetSpellTargetUnit())
+            if(soulCount < 1)
+                printTimedToPlayer("Target does not have any souls to consume.", 2.0, caster.getOwner())
+                caster.issueImmediateOrder("stop")
+                ResetUnitAnimation(caster)
+    
+    EventListener.add(EVENT_PLAYER_UNIT_SPELL_CAST) () ->
+        let spell = GetSpellAbilityId()
+        if(spellSoulCost.has(spell))
+            let caster = GetSpellAbilityUnit()
+            let cost = spellSoulCost.get(spell)
+            if(getSoulCount(caster) < cost)
+                printTimedToPlayer("You do not have any souls. Need at least " + cost.toString() + " souls to use this ability but you have " + getSoulCount(caster).toString(), 2.0, caster.getOwner())
+                caster.issueImmediateOrder("stop")
+                ResetUnitAnimation(caster)
+            
+        

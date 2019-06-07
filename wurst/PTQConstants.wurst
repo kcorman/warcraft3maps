@@ -4,6 +4,14 @@ import Simulate3dSound
 import TimerUtils
 public constant CROW_FORM = 'Amrf'
 public constant LOCUST = 'Aloc'
+public constant player GoodGusy = Player(10)
+public constant player BadGuy = Player(11)
+
+public function getComputerAlly(player p) returns player
+    player result = BadGuy
+    if(p.isAllyOf(GoodGusy))
+        result = GoodGusy
+    return result
 
 public interface DelayedEffect
     function run()
