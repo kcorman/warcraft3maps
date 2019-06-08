@@ -1,6 +1,7 @@
 package PTQConstants
 import SoundUtils
 import Simulate3dSound
+import LinkedList
 import TimerUtils
 public constant CROW_FORM = 'Amrf'
 public constant LOCUST = 'Aloc'
@@ -12,6 +13,9 @@ public function getComputerAlly(player p) returns player
     if(p.isAllyOf(GoodGusy))
         result = GoodGusy
     return result
+
+public function getHumanPlayers()
+    
 
 public interface DelayedEffect
     function run()
@@ -35,3 +39,6 @@ public class PTQUtils
             DelayedEffect sa = (GetExpiredTimer().getData() castTo DelayedEffect)
             GetExpiredTimer().destr()
         end))
+
+init
+    

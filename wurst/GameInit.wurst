@@ -190,10 +190,10 @@ init
     SetCameraBoundsToRect(gg_rct_PlayableArea)
     int i = 0
     while(i < 12)
-            if(players[i].getSlotState() == PLAYER_SLOT_STATE_PLAYING and players[i].getController() == MAP_CONTROL_USER)
-                Utils.numPlayers++
-                Utils.allPlayers.add(players[i])
-            i++
+        if(players[i].getSlotState() == PLAYER_SLOT_STATE_PLAYING and players[i].getController() == MAP_CONTROL_USER)
+            Utils.numPlayers++
+            Utils.allPlayers.add(players[i])
+        i++
     
     Utils.goodGusy = new FriendlyStuff(Player(10), true)
     Utils.badGusy = new FriendlyStuff(Player(11), false)
@@ -224,19 +224,11 @@ init
     t.addCondition(Condition(() -> IsUnitType(GetSoldUnit(), UNIT_TYPE_HERO)))
     t.addAction(() -> Utils.buyHero(GetSoldUnit()))
 
-    t = CreateTrigger()
-    t.registerAnyUnitEvent(EVENT_PLAYER_UNIT_DEATH)
-    t.addCondition(Condition(() -> GetOwningPlayer(GetDyingUnit()) == Player(11)))
-    t.addAction(() -> begin
-        force f =GetPlayersAllies(GetKillingUnit().getOwner())
-        f.forEach(() -> begin
-            GetEnumPlayer().addGold(GetDyingUnit().getLevel() * 10)
-        end)
-    end)
+
 
 
     unit u = createUnit(Player(0), coolTavern, gg_rct_cooltavern.getCenter(), angle(0))
-    //u = createUnit(Player(0), SOUL_WYRM, gg_rct_cooltavern.getCenter(), angle(0))
+    u = createUnit(Player(0), SOUL_WYRM, gg_rct_cooltavern.getCenter(), angle(0))
     //u.setLevel(12, true)
     //unit u = createUnit(Player(0), SYLAR, gg_rct_helperArea.getCenter(), angle(0))
     //u.setLevel(12, true)

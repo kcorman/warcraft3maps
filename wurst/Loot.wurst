@@ -1,12 +1,53 @@
 package Loot
 import ClosureEvents
-
+import PTQConstants
+import GameInit
+import LinkedList
+import TimerUtils
+import GameTimer
+import ClosureTimers
+constant real TEXT_TAG_TICK_TIME = .25
 int ITEM_LUMBER = 'lmbr'
 int ITEM_GOLD = 'gold'
 
+class TagWrapper
+    texttag tag
+    real liveUntil
+
+// could keep this sorted for a slight optimization if we have lots of tags, but I dont think its necessary
+LinkedList<TagWrapper> textTags = new LinkedList<TagWrapper>
+
+function setTextTagTime(texttag tag, real duration)
+    TagWrapper wrap = new TagWrapper()
+    wrap.tag = tag
+    wrap.liveUntil = getElapsedGameTime() + duration
+    textTags.add(wrap)
+
 init
+    getTimer().doPeriodically(TEXT_TAG_TICK_TIME) (CallbackPeriodic cb) ->
+        LLIterator<TagWrapper> itr = textTags.iterator()
+        let curTime = getElapsedGameTime()
+        while(itr.hasNext())
+            let tag = itr.next()
+            if(tag.liveUntil < curTime)
+                tag.tag.destr()
+                itr.remove()
+    
     EventListener.add(EVENT_PLAYER_UNIT_DEATH) () ->
         if(GetRandomReal(0, 1.) > .96)
             createItem(ITEM_LUMBER, GetDyingUnit().getPos())
         else if (GetRandomReal(0, 1) > .96)
             createItem(ITEM_GOLD, GetDyingUnit().getPos())
+
+        let dyingUnit = GetDyingUnit()
+        if(dyingUnit.getOwner() == BadGuy)
+            let totalGold = dyingUnit.getLevel() * 30
+            let perPersonGold = (totalGold / Utils.allPlayers.size().toReal()).toInt()
+            for player p in Utils.allPlayers
+                p.addGold(perPersonGold)
+                createTTEx(dyingUnit.getPos3Real(), vec2(0, .03), "+" + perPersonGold.toString(), 10, 2, colorA(255, 215, 0,0))
+
+                //setTextTagTime(t, 2)
+
+
+ 

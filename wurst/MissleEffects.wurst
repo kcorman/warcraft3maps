@@ -1,0 +1,98 @@
+package MissleEffects
+import ClosureTimers
+import GameTimer
+
+// Adapted from https://github.com/island-troll-tribes/island-troll-tribes
+public interface ProjCb
+    function onImpact()
+public function quickProjectile(vec3 startPos, vec3 targetPos, real groundSpeed, real gravity, string path, ProjCb cb) returns ClosureProjectile
+    return new ClosureProjectile(startPos, targetPos, groundSpeed, gravity, path, cb)
+public abstract class CustomProjectile
+    real groundSpeed
+    real verticalSpeed
+    vec3 startPos
+    vec3 targetPos
+    widget targetWidget
+    bool homing
+    real gravity
+    real originalDistance
+    real spinSpeed = 0
+    effect missileFx
+    CallbackPeriodic updaterLoop
+    function setSpinSpeed(real val)
+        this.spinSpeed = val
+    construct(vec3 startPos, vec3 targetPos, real groundSpeed, real gravity, string effectPath)
+        this.startPos = startPos
+        this.targetPos = targetPos
+        this.targetWidget = null
+        this.groundSpeed = groundSpeed
+        this.gravity = -gravity
+        this.homing = false
+        this.missileFx = addEffect(effectPath, startPos)
+        this.originalDistance = startPos.toVec2().distanceTo(targetPos.toVec2())
+        this.postCreation()
+
+    construct(vec3 startPos, widget targetWidget, real groundSpeed, real gravity, string effectPath)
+        this.startPos = startPos
+        this.targetWidget = targetWidget
+        this.targetPos = targetWidget.getPos().withTerrainZ()
+        this.groundSpeed = groundSpeed
+        this.gravity = -gravity
+        this.homing = true
+        this.missileFx = addEffect(effectPath, startPos)
+        this.originalDistance = startPos.toVec2().distanceTo(targetPos.toVec2())
+        this.postCreation()
+
+    function updateTick()
+        if this.targetWidget != null and this.homing
+            this.targetPos = this.targetWidget.getPos().withTerrainZ()
+
+        let curPos3D = this.missileFx.getPos3()
+        let curPos2D = curPos3D.toVec2()
+        let targetPos3D = this.targetPos
+        let targetPos2D = targetPos3D.toVec2()
+        let distance2D = curPos2D.distanceTo(targetPos2D)
+
+        //Update vertical speed for appropriate flight arc
+        let flightTime = distance2D / this.groundSpeed
+        real heightDifference = (this.targetPos - missileFx.getPos3()).z
+        this.verticalSpeed = (heightDifference / flightTime) - (0.5 * this.gravity * flightTime)
+
+        //Update position
+        if this.groundSpeed * ANIMATION_PERIOD >= distance2D
+            this.missileFx.setPos(this.targetPos)
+            this.onImpact()
+            this.postImpact()
+            return
+        else
+            let newPos3D = curPos3D.offset2d(curPos2D.angleTo(targetPos2D), this.groundSpeed * ANIMATION_PERIOD) + vec3(0, 0, this.verticalSpeed * ANIMATION_PERIOD)
+            this.missileFx.setPos(newPos3D)
+            if(spinSpeed > 0)
+                let pitch = getElapsedGameTime() * PI2 * spinSpeed
+                this.missileFx.setRoll(pitch)
+
+
+    function postCreation()
+        missileFx.setYaw(startPos.angleTo2d(targetPos))
+        this.updaterLoop = doPeriodically(ANIMATION_PERIOD) cb ->
+            this.updateTick()
+
+    abstract function onImpact()
+
+    function postImpact()
+        destroy this
+
+    ondestroy
+        this.missileFx.destr()
+        if this.updaterLoop != null
+            destroy this.updaterLoop
+
+
+class ClosureProjectile extends CustomProjectile
+    ProjCb callback
+    construct(vec3 startPos, vec3 targetPos, real groundSpeed, real gravity, string effectPath, ProjCb callback)
+        super(startPos, targetPos, groundSpeed, gravity, effectPath)
+        this.callback = callback
+
+    override function onImpact()
+        callback.onImpact()

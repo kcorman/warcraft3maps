@@ -8,6 +8,7 @@ import ClosureForGroups
 import Texttag
 import Vectors
 import GameInit
+import MissleEffects
 import Effect
 import Assets
 import OrderIds
@@ -26,7 +27,7 @@ import PTQConstants
 constant SoundDefinition whip = new SoundDefinition(Sounds.ancestralGuardianHit1, false)
 constant SoundDefinition fire = new SoundDefinition(Sounds.breathOfFire1, false)
 constant SoundDefinition poss = new SoundDefinition(Sounds.possessionMissileLaunch1, false)
-constant int MAX_WYRM_SOULS = 50
+constant int MAX_WYRM_SOULS = 35
 
 
 HashMap<unit, NumWrapper> soulCount = new HashMap<unit, NumWrapper>
@@ -34,11 +35,12 @@ HashMap<int, int> spellSoulCost = new HashMap<int, int>
 
 function doFeedSoul(unit wyrm, unit master) returns boolean
     let remainingSouls = getSoulCount(master)
+    let max = MAX_WYRM_SOULS * wyrm.getAbilityLevel(CONSUME_SOUL)
     var done = false
     if(not wyrm.isAliveTrick() or not master.isAliveTrick() or not wyrm.isChannelingAbility(CONSUME_SOUL))
         done = true
-    if(getSoulCount(wyrm) >= MAX_WYRM_SOULS)
-        printTimedToPlayer("Wyrm already has the max number of souls (" + MAX_WYRM_SOULS.toString() + ")", 3, master.getOwner())
+    if(getSoulCount(wyrm) >= max)
+        printTimedToPlayer("Wyrm already has the max number of souls (" + max.toString() + ")", 3, master.getOwner())
         done = true
     if(remainingSouls <= 0)
         printTimedToPlayer("Not enough souls. Collect more souls before attempting to feed the wyrm", 3, master.getOwner())
@@ -51,17 +53,19 @@ function doFeedSoul(unit wyrm, unit master) returns boolean
         master.unpause()
     else
         poss.playOnPoint(wyrm.getPos3Real())
-        incrementSoulCount(wyrm, 1)
         incrementSoulCount(master, -1)
-        wyrm.setBaseDamage(wyrm.getBaseDamage(0) + 10, 0)
-        wyrm.setMaxHP((wyrm.getMaxHP() + 50).toInt(), true)
-        let scale = 1 + (getSoulCount(wyrm) - 10) * .05
-        wyrm.setScale(scale)
-        let lgt = addLightning(LIGHTNING_DRAIN_MANA, true, master.getPos(), wyrm.getPos())
-        getTimer().doAfter(.25) () ->
-            lgt.destr()
+        feedSoulBuff(wyrm, 1)
+        quickProjectile(master.getPos3Real(), wyrm.getPos3Real() + vec3(0, 0, 100), 500, 0, Abilities.possessionMissile) () ->
+
+
     return done
 
+function feedSoulBuff(unit wyrm, int count)
+    incrementSoulCount(wyrm, count)
+    wyrm.setBaseDamage(wyrm.getBaseDamage(0) + 10 * count, 0)
+    wyrm.setMaxHP((wyrm.getMaxHP() + 50 * count).toInt(), true)
+    let scale = 1 + (getSoulCount(wyrm) - 10) * .05 * count
+    wyrm.setScale(scale)
 class NumWrapper
     int val = 0
 function getSoulCount(unit u) returns int
@@ -85,12 +89,8 @@ init
         let killer = GetKillingUnit()
         if(killer.hasAbility(HARVEST_SOULS))
             incrementSoulCount(killer, 1)
-            texttag t = null
-            if(killer.getOwner() == GetLocalPlayer())
-                t = CreateTextTagUnitBJ("+1 Soul", GetDyingUnit(), 50, 10, 50, 0, 255, 0)
-            getTimer().doAfter(1.) () ->
-                if(t != null)
-                    t.destr()
+            createTTEx(killer.getPos3Real(), vec2(0, .03), "+1 Soul", 10, 2, colorA(50, 0, 255,0), killer.getOwner())
+
     // Seduce
     EventListener.onCast(SEDUCE) (unit caster) ->
         let target = getSpellTargetPos()
@@ -105,11 +105,18 @@ init
                 flashEffect(Abilities.charmTarget, u, "overhead")
         getTimer().doPeriodicallyTimed(.10, 20) (CallbackCounted cb) ->
             if(not caster.isChannelingAbility(SEDUCE))
+                var ded = 0
                 for unit u in affected 
                     u.setOwner(ogOwner.get(u), true)
-                    flashEffect(Abilities.dispelMagicTarget, u, "overhead")
+                    if(not u.isAliveTrick())
+                        ded++
+                    else
+                        flashEffect(Abilities.dispelMagicTarget, u, "overhead")
                 cb.stop()
                 affected.destr()
+                if(ded > 0)
+                    incrementSoulCount(caster, ded)
+                    createTTEx(caster.getPos3Real(), vec2(0, .03), "+" + ded.toString() + " Soul", 10, 2, colorA(50, 0, 255,0), caster.getOwner())
     // Demon dash
     EventListener.onCast(DEMON_DASH) (unit caster) ->
         flashEffect(Abilities.redDragonMissile, caster.getPos())
@@ -122,7 +129,7 @@ init
         caster.setAnimation("attack slam")
         caster.pause()
         flashEffect(Abilities.redDragonMissile, targetWithOffset)
-        getTimer().doAfter(.35) () ->
+        getTimer().doAfter(.20) () ->
             whip.playOnPoint(targetWithOffset.toVec3())
         getTimer().doAfter(.75) () ->
             caster.damageTarget(target, dmg, true, false, ATTACK_TYPE_NORMAL, DAMAGE_TYPE_NORMAL, WEAPON_TYPE_CLAW_LIGHT_SLICE)
@@ -151,24 +158,30 @@ init
         group damaged = GetUnitsInRangeOfLocAll(500, PTQUtils.vec2ToLoc(origin))
         print("Damage = " + dmg.toString())
         for u in damaged
-            if(not u.isEnemyOf(caster.getOwner()) or SquareRoot(u.getPos().distanceToSegmentSq(caster.getPos(), target)) > 50)
+            if(not u.isEnemyOf(caster.getOwner()) or SquareRoot(u.getPos().distanceToSegmentSq(caster.getPos(), target)) > 90)
                 damaged.removeUnit(u)
             else
                 caster.damageTarget(u, dmg)
+        damaged.destr()
         getTimer().doAfter(1.0) () ->
             e.destr()
     // Soul Wyrm
     EventListener.onCast(SUMMON_SOUL_WYRM) (unit caster) ->
         let cost = spellSoulCost.get(SUMMON_SOUL_WYRM)
         let target = getSpellTargetPos()
+        let lvl = caster.getAbilityLevel(SUMMON_SOUL_WYRM)
+        let extraSouls = (lvl - 1) * 10
         incrementSoulCount(caster, -cost)
         getTimer().doAfter(2) () ->
-            let lgt = addLightning(LIGHTNING_MAGIC_LEASH, true, caster.getPos(), target)
             print ("Creating soul wyrm")
             unit wyrm = createUnit(caster.getOwner(), SOUL_WYRM, target, caster.getFacingAngle())
+            wyrm.setAbilityLevel(CONSUME_SOUL, lvl)
+            for i = 0 to 5
+                quickProjectile(caster.getPos3Real(), wyrm.getPos3Fly() + vec3(0, 0, 100), GetRandomReal(300, 500), 0, Abilities.possessionMissile) () ->
+
             incrementSoulCount(wyrm, 10)
-            getTimer().doAfter(.5) () ->
-                lgt.destr()
+            if(extraSouls > 0)
+                feedSoulBuff(wyrm, extraSouls)
     
     // Feel Soul Wyrm
     EventListener.onCast(CONSUME_SOUL) (unit caster) ->
@@ -189,7 +202,27 @@ init
                 printTimedToPlayer("Target does not have any souls to consume.", 2.0, caster.getOwner())
                 caster.issueImmediateOrder("stop")
                 ResetUnitAnimation(caster)
-    
+    // Soul Rain
+    EventListener.onCast(SOUL_RAIN) (unit caster) ->
+        let lvl = caster.getAbilityLevel(SOUL_RAIN)
+        let souls = getSoulCount(caster)
+        let dmgPerShard = 100 + (5 * souls).toReal()
+        let targetLoc = getSpellTargetPos()
+        let radius = (300 + 100 * lvl).toReal()
+        let shardRadius = 150.
+
+        getTimer().doPeriodicallyTimed(.25, 6) (CallbackCounted cb) ->
+            if(not caster.isChannelingAbility(SOUL_RAIN))
+                cb.stop()
+            else
+                for i = 1 to lvl
+                    let ps = targetLoc + vec2(GetRandomReal(-radius, radius), GetRandomReal(-radius, radius))
+                    addEffect("war3mapImported\\Void Rain.mdx", ps)
+                    group dmged = GetUnitsInRangeOfLocAll(shardRadius, PTQUtils.vec2ToLoc(ps))
+                    for u in dmged
+                        if(u.isEnemyOf(caster.getOwner()) and not u.isInvulnerable())
+                            caster.damageTarget(u, dmgPerShard)
+                    dmged.destr()
     EventListener.add(EVENT_PLAYER_UNIT_SPELL_CAST) () ->
         let spell = GetSpellAbilityId()
         if(spellSoulCost.has(spell))

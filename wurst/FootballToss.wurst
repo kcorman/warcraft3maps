@@ -5,48 +5,76 @@ import ClosureTimers
 import ClosureEvents
 import ClosureForGroups
 import LinkedList
+import MissleEffects
+import TimerUtils
 import OrderIds
+import Assets
 import Vectors
+import PTQConstants
 
 constant int START_FOOTBALL_ID = 'A008'
 constant int FOOTBALL_ABILITY_ID = 'A019'
 constant real ABILITY_RANDOM_LEVEL_FACTOR = .05
 constant real ABILITY_RANDOM_BASE = .25
 
-init
-    EventListener.add(EVENT_PLAYER_UNIT_SPELL_EFFECT) () ->
-        let ogCaster = GetSpellAbilityUnit()
-        let lvl = ogCaster.getAbilityLevel(START_FOOTBALL_ID)
-        if(GetSpellAbilityId() == START_FOOTBALL_ID)
-            let target = GetSpellTargetUnit()
-            new DummyCaster()
-                ..origin(ogCaster.getPos())
-                ..owner(ogCaster.getOwner())
-                ..delay(5)
-                ..castTarget(FOOTBALL_ABILITY_ID, lvl, OrderIds.firebolt, target)
-        else if(GetSpellAbilityId() == FOOTBALL_ABILITY_ID)
-            // check if the toss should propegate
-            
-            let chanceToPropegate = ABILITY_RANDOM_BASE + ABILITY_RANDOM_LEVEL_FACTOR * lvl
-            //if(GetRandomReal(0, 1.0) < chanceToPropegate)
-            if(true) 
-                let oldTarget = GetSpellTargetUnit()
-                LinkedList<unit> singleton = new LinkedList<unit>()
-                forUnitsInRange(oldTarget.getPos(), 800.) (unit u) ->
-                    if(singleton.isEmpty())
-                        if(u.getOwner().isEnemyOf(ogCaster.getOwner()) and (not u == oldTarget) and (not u.isInvulnerable()) and u.isAlive() and GetRandomReal(0, 1.0) < chanceToPropegate)
-                            singleton.add(u)
+constant int MIN_HITS_PER_LEVEL = 2
+constant real FINAL_TOSS_RADIUS = 250
 
-                oldTarget.setAnimation("attack")
-                if(not singleton.isEmpty())
-                    let newTarget = singleton.pop()
-                    oldTarget.setFacing(oldTarget.getPos().angleTo(newTarget.getPos()))
-                    doAfter(.75) () ->
-                        ResetUnitAnimation(oldTarget)
-                        new DummyCaster()
-                        ..origin(oldTarget.getPos())
-                        ..owner(ogCaster.getOwner())
-                        ..delay(5)
-                        ..castTarget(FOOTBALL_ABILITY_ID, lvl, OrderIds.firebolt, newTarget)
+function doEndToss(unit ogCaster, unit passer)
+    let targetPos = ogCaster.getPos() + vec2(GetRandomReal(-FINAL_TOSS_RADIUS, FINAL_TOSS_RADIUS), GetRandomReal(-FINAL_TOSS_RADIUS, FINAL_TOSS_RADIUS))
+    let targetVec3 = targetPos.toVec3() + vec3(0, 0, targetPos.getTerrainZ() + 50)
+    
+    effect e = addEffect("UI\\Feedback\\TargetPreSelected\\TargetPreSelected.mdl", targetVec3)
+    e.destr()
+    passer.pause()
+    passer.setFacing(passer.getPos().angleTo(targetPos))
+    passer.setAnimation("attack")
+    getTimer().doAfter(.35) () ->
+        passer.unpause()
+        ResetUnitAnimation(passer)
+        let proj = quickProjectile(passer.getPos3Real(), targetVec3, 200, 2000, Units.pig1) () ->
+            if(ogCaster.getPos().distanceTo(targetPos) < 100)
+                doToss(ogCaster, null, ogCaster, 0)
+        proj.setSpinSpeed(1)
+function doToss(unit ogCaster, unit targetOverride, unit passer, int tossesSoFar)
+    let lvl = ogCaster.getAbilityLevel(START_FOOTBALL_ID)
+    let str = ogCaster.getStr(true)
+    let max = 3 + lvl * MIN_HITS_PER_LEVEL
+    if(tossesSoFar >= max)
+        doEndToss(ogCaster, passer)
+    else
+        var hpChange = (str * lvl + (50 * lvl)).toReal()
+        var target = targetOverride
+        if(target == null)
+            group potentials = GetUnitsInRangeOfLocAll(600, passer.getLoc())
+            for unit u in potentials
+                if(u.isInvulnerable() or not u.isAlive() or u == passer)
+                    potentials.removeUnit(u)
+            if(potentials.isEmpty())
+                doEndToss(ogCaster, passer)
+                return
+            target = potentials.getRandomUnit()
+            potentials.destr()
+        passer.pause()
+        passer.setFacing(passer.getPos().angleTo(target.getPos()))
+        passer.setAnimation("attack")
+        target.setFacing(target.getPos().angleTo(passer.getPos()))
+        
+        if(target.getOwner().isEnemyOf(ogCaster.getOwner()))
+            hpChange = -hpChange
+        getTimer().doAfter(.35) () ->
+            passer.unpause()
+            ResetUnitAnimation(passer)
+        let proj = quickProjectile(passer.getPos3Real(), target.getPos3Real(), 300, 2000, Units.pig1) () ->
+            if(target.isAliveTrick())
+                target.addHP(hpChange)
+                doToss(ogCaster, null, target, tossesSoFar + 1)
+        proj.setSpinSpeed(5)
+    
+init
+    EventListener.onCast(START_FOOTBALL_ID) (caster) ->
+        let target = GetSpellTargetUnit()
+        doToss(caster, target, caster, 0)
+
                         
         
