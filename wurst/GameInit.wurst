@@ -6,10 +6,11 @@ import Effect
 import Assets
 import CustomUnits
 import ClosureEvents
+import PTQConstants
 import MonsterAbilities
 import DialogBox
 import UnitTrainers
-
+//Units\Other\DalaranMutant\ZombieB.BLP
 constant int FOOTMAN = 'hfoo'
 constant int SORCERESS = 'hsor'
 constant int GHOUL = 'ugho'
@@ -228,7 +229,10 @@ init
 
 
     unit u = createUnit(Player(0), coolTavern, gg_rct_cooltavern.getCenter(), angle(0))
-    u = createUnit(Player(0), SOUL_WYRM, gg_rct_cooltavern.getCenter(), angle(0))
+    //u = createUnit(Player(0), SOUL_WYRM, gg_rct_cooltavern.getCenter(), angle(0))
+    // monsterCreated(u)
+    u = createUnit(Player(0), SYLAR, gg_rct_testzone.getCenter(), angle(0))
+    u.setLevel(12, true)
     //u.setLevel(12, true)
     //unit u = createUnit(Player(0), SYLAR, gg_rct_helperArea.getCenter(), angle(0))
     //u.setLevel(12, true)

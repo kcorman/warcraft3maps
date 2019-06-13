@@ -16,7 +16,14 @@ public function getComputerAlly(player p) returns player
 
 public function getHumanPlayers()
     
-
+interface PredicateClosure
+    function test(unit u) returns boolean
+public function getUnitsInRangeOfLocMatchingClosure(real radius, vec2 pos, PredicateClosure closure) returns group
+    group g = GetUnitsInRangeOfLocAll(radius, PTQUtils.vec2ToLoc(pos))
+    for unit u in g
+        if(not closure.test(u))
+            g.removeUnit(u)
+    return g
 public interface DelayedEffect
     function run()
 

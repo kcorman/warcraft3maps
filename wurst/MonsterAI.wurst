@@ -1,0 +1,105 @@
+package MonsterAI
+import BasicAI
+import PTQConstants
+import CustomUnits
+import DummyCaster
+import Assets
+import CustomAbilities
+import ClosureEvents
+import TimerUtils
+import GameTimer
+import ClosureTimers
+import TerrainUtils
+import OrderIds
+public class DethNightAI extends AbstractAIHandler
+    construct(unit u)
+        super(u)
+    override function onDiffHP(real diff)
+        if(diff < 0)
+            flee()
+    function flee()
+        if(getTimeSinceLastOrder() > 5)
+            vec2 fleeDest = u.getPos().polarOffset(u.getFacingAngle() + angle(PI), 600)
+            u.issuePointOrder("move", fleeDest)
+            trackOrderTime()
+
+public class CryptFrendAI extends AbstractAIHandler
+    construct(unit u)
+        super(u)
+    override function onDiffHP(real diff)
+        if(u.getHP() < u.getMaxHP() * .5 and getTimeSinceLastOrder() > 1)
+            attemptToGetHealed()
+            trackOrderTime()
+
+    function attemptToGetHealed()
+        // find any DKs
+        group dks = getUnitsInRangeOfLocMatchingClosure(2000, u.getPos()) (t) ->
+            return t.getTypeId() == DETH_NIGHT and t.getOwner().isAllyOf(u.getOwner())
+
+        if(dks.hasNext())
+            unit dk = dks.next()
+            dk.setFacing(dk.getPos().angleTo(u.getPos()))
+            dk.setAnimation("Spell")
+            new DummyCaster()
+                ..origin(dk.getPos())
+                ..owner(dk.getOwner())
+                ..castTarget(skillCoilEffect, 1, OrderIds.deathcoil, u)
+            
+        dks.destr()
+
+public class AeroBearAI extends AbstractAIHandler
+    boolean doingRoll = false
+    construct(unit u)
+        super(u)
+
+    override function onDiffHP(real diff)
+        if(doingRoll)
+            u.addHP(-diff)
+            group g = getUnitsInRangeOfLocMatchingClosure(500, u.getPos()) (unit test) ->
+                return test.isEnemyOf(u.getOwner()) and not test.isInvulnerable()
+            for unit dmg in g
+                u.damageTarget(dmg, -diff)
+                flashEffect(Abilities.flyingMachineMissile, dmg, "chest")
+            g.destr()
+        else if(diff < 0 and getTimeSinceLastOrder() > 8)
+            trackOrderTime()
+            if(GetRandomReal(0, 1) > .5)
+                bearelRoll()
+            else
+                bearCyclone() 
+
+    function bearCyclone()
+        u.setAnimation("Attack Slam")
+        // SetTerrainType(u.getX(), u.getY(), 'Iice', 0, 2, 0)
+        group g = getUnitsInRangeOfLocMatchingClosure(700, u.getPos()) (unit test) ->
+            return test.isEnemyOf(u.getOwner()) and not test.isInvulnerable() and GetRandomReal(0, 1) > .5
+        for unit dmg in g
+            new DummyCaster()..owner(u.getOwner())
+                ..origin(u.getPos())
+                ..castTarget(bearCyclone, 1, OrderIds.cyclone, dmg)
+    function bearelRoll()
+        u.setVertexColor(colorA(255, 255, 255, 0))
+        u.setPathing(false)
+        u.pause()
+        doingRoll = true
+        let duration = 3.0
+        let target = u.getPos().polarOffset(u.getFacingAngle(), 500)
+        let tickTime = .05
+        let numTicks = duration / tickTime
+        let vecMovement = (target - u.getPos()).op_div(numTicks)
+        let ef = addEffect(Units.grizzlyBear, u.getPos3Real() + vec3(0,0,100))
+        ef.setYaw(vecMovement.getAngle().radians())
+        ef.setScale(1.5)
+        
+        getTimer().doPeriodicallyTimed(.05, duration) (CallbackCounted cb) ->
+            if(cb.isLast())
+                u.unpause()
+                u.setVertexColor(colorA(255, 255, 255, 255))
+                doingRoll = false
+                ef.setPos(vec3(0,0,0))
+                u.setPathing(true)
+                ef.destr()
+            else
+                u.setXY(u.getPos() + vecMovement)
+                ef.setPos(u.getPos())
+                ef.setRoll(getElapsedGameTime() * PI2 * 2)

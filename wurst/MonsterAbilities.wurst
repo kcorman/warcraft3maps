@@ -8,17 +8,23 @@ import ClosureForGroups
 import Vectors
 import Effect
 import Assets
+import BasicAI
 import OrderIds
 import HashSet
+import MonsterAI
 import Lightning
 import DummyCaster
+import SoundUtils
 import Knockback3
 import LinkedList
 import HashList
 import HashMap
 import PTQConstants
 import CustomUnits
+constant int MURLOC_HEAD = 'n00O'
 constant int MEAT_WAGON = 'umtw'
+constant int MAX_COILS = 200
+constant SoundDefinition boneCrack = new SoundDefinition(Sounds.skeletonWhat1, false, true)
 
 interface HealthChangeCallback
     function run(real diff, boolean last) returns boolean
@@ -26,21 +32,71 @@ interface HealthChangeCallback
 LinkedList<MonsterHealthTracker> hpTrackedMonsters = new LinkedList<MonsterHealthTracker>
 LinkedList<CoilTracker> coilList = new LinkedList<CoilTracker>
 class CoilTracker
+    int level = 1
     unit coil
     unit caster
     lightning light
 
+class RealWrapper
+    real val = 0
 public function monsterCreated(unit monster)
-    if(monster.getTypeId() == UNSTOPPABLE_TANK)
-        handleUnstoppableTank(monster)
-    else if (monster.getTypeId() == COIL_HYDRA)
-        monster.setVertexColor(150, 230, 150, 30)
-        for i = 0 to 1
-            createHydraCoil(monster)
+    switch(monster.getTypeId())
+        case COIL_HYDRA
+            monster.setVertexColor(150, 230, 150, 30)
+            for i = 0 to 1
+                createHydraCoil(monster)
+        case CRYPT_FREND
+            addAI(new CryptFrendAI(monster))
+        case DETH_NIGHT
+            addAI(new DethNightAI(monster))
+        case UNSTOPPABLE_TANK
+            handleUnstoppableTank(monster)
+        case MURLOC_HEAD
+            //PTQUtils.enableFlyingForUnit(monster)
+            monster.setAnimation("Walk Swim")
+            // TODO: Doesnt work right
+            monster.pause()
+            effect e = addEffect(Buildings.barrelsUnit, monster, "origin")
+            e.setScale(1.5)
+            getTimer().doAfter(5) () ->
+                monster.unpause()
+                e.destr()
+                if(monster.isAliveTrick())
+                    monsterCreated(ReplaceUnitBJ(monster, MURLOC_BARBATUS, bj_UNIT_STATE_METHOD_DEFAULTS))
+        case AERO_BEAR
+            addAI(new AeroBearAI(monster))
+        default
+            // do nothing
+/*
+class BallTracker
+    effect u
+    real radius = 0
+    unit z
+    timer t
+    function doStart()
+        PTQUtils.enableFlyingForUnit(z)
+        radius = 50
+        z.setFlyHeight(radius + 100, 0)
         
-timer coilTimer = null
-        
+    function doTick()
+        let t = getElapsedGameTime()
+        let rotationAroundZ = t * PI2
+        let backAndForth = rotationAroundZ.cos() * 2 - 1
+        let upAndDown = rotationAroundZ.sin() * 2 - 1
+        let start = z.getPos()
+        u.setPos(start.polarOffset(z.getFacingAngle(), backAndForth * radius).withRealZ(z))
+        u.setZ(z.getPos3Real().z + upAndDown * radius)
+        u.setPitch(rotationAroundZ)
 
+function startBall(unit monster)
+    BallTracker trk = new BallTracker()
+    trk.z = monster
+    trk.u = addEffect(Units.murloc1, trk.z.getPos3Real())
+    timer t = getTimer()..doPeriodically(.05) (CallbackPeriodic cb) ->
+        trk.doTick()
+    trk.t = t
+    trk.doStart()*/
+timer coilTimer = null
 public function createHydraCoil(unit caster)
     unit u = CreateUnit(caster.getOwner(), COIL_UNIT, caster.getX(), caster.getY(), caster.getFacing())
     CoilTracker tracker = new CoilTracker()
@@ -52,6 +108,20 @@ public function createHydraCoil(unit caster)
     if(coilTimer == null)
         startCoilTimer()
 
+function promoteCoil()
+    LLIterator<CoilTracker> itr = coilList.iterator()
+    while(itr.hasNext())
+        let trk = itr.next()
+        if(trk.coil.isAliveTrick() and trk.level == 1)
+            trk.level++
+            trk.coil.setMaxHP(trk.coil.getMaxHP().toInt() * 2, true)
+            trk.coil.setBaseDamage(trk.coil.getBaseDamage(0) * 2, 0)
+            let clr = colorA(255,150,50,0)
+            //trk.coil.setVertexColor(clr)
+            trk.coil.setScale(1.5)
+            trk.light.setColor(clr)
+            flashEffect(Abilities.purgeBuffTarget, trk.coil, "overhead")
+            break
 public function startCoilTimer()
     coilTimer = getTimer()
     coilTimer.doPeriodically(.10) (CallbackPeriodic cb) ->
@@ -69,8 +139,11 @@ public function startCoilTimer()
             else
                 trk.light.destr()
                 itr.remove()
-                createHydraCoil(trk.caster)
-                createHydraCoil(trk.caster)
+                if(coilList.size() < MAX_COILS)
+                    createHydraCoil(trk.caster)
+                    createHydraCoil(trk.caster)
+                else
+                    promoteCoil()
 
 
 class MonsterHealthTracker
@@ -135,21 +208,38 @@ function handleUnstoppableTank(unit tankMonster)
                             if(u.isEnemyOf(tank.getOwner()))
                                 u.explode()
                         g.destr()
-function attemptToHealFiend(unit fiend)
-    // find any DKs
-    group dks = GetUnitsInRangeOfLocMatching(1000, fiend.getLoc(), Condition(() -> begin
-        return GetFilterUnit().getTypeId() == DETH_NIGHT and GetFilterUnit().isAliveTrick()
-    end))
-    if(dks.hasNext())
-        unit dk = dks.next()
-        dk.setFacing(dk.getPos().angleTo(fiend.getPos()))
-        dk.setAnimation("Spell")
-        new DummyCaster()
-            ..origin(dk.getPos())
-            ..owner(dk.getOwner())
-            ..castTarget(skillCoilEffect, 1, OrderIds.deathcoil, fiend)
-        
-    dks.destr()
+
+HashSet<unit> unitsOnFire = new HashSet<unit>()
+
+function unit.isOnFire() returns boolean
+    return unitsOnFire.has(this)
+function unit.setOnFire(boolean val)
+    if(val)
+        unitsOnFire.add(this)
+    else
+        unitsOnFire.remove(this)
+
+function setOnFire(unit target)
+    if(target.isOnFire())
+        return
+    flashEffect(Abilities.fireBallMissile, target, "head")
+    target.setOnFire(true)
+    let ef = addEffect(Doodads.firePillarMedium, target, "head")
+    let oldSpeed = target.getMoveSpeed()
+    target.setMoveSpeed(522)
+    let duration = 6.
+    getTimer().doPeriodicallyTimed(.5, duration) (CallbackCounted cb) ->
+        target.issuePointOrder("move", target.getPos().polarOffset(angle(GetRandomReal(0, 360)), 400))
+    getTimer().doPeriodicallyTimed(.10, duration) (CallbackCounted cb) ->
+        group g = getUnitsInRangeOfLocMatchingClosure(125, target.getPos()) (unit u) ->
+            return u.getOwner().isAllyOf(target.getOwner()) and not u == target and not u.isOnFire()
+        for unit u in g
+            setOnFire(u)
+        target.setHP(target.getHP() - target.getMaxHP() / 200)
+        if(cb.isLast())
+            target.setOnFire(false)
+            target.setMoveSpeed(oldSpeed)
+            ef.destr()
 class HpWrapper
     real hp
 init
@@ -167,9 +257,11 @@ init
         Knockback3.add(caster, distance * 2, caster.getPos().angleTo(target.getPos()), angle(PI / 4))
         getTimer().doPeriodicallyCounted(.04, 500) (cb) ->
             if(caster.getPos().distanceTo(target.getPos()) < 100)
+                let ogSpeed = target.getMoveSpeed()
                 Knockback3.setVel(caster, 0, angle(0), angle(0))
                 caster.setAnimation("Stand Channel")
                 caster.pause()
+                target.setMoveSpeed(10)
                 cb.stop()
                 getTimer().doPeriodicallyCounted(.5, 6) (CallbackCounted cb) ->
                     flashEffect(Objects.battrollBlood, target.getPos(), 2)
@@ -178,15 +270,11 @@ init
                     caster.setHP(caster.getHP() + damage)
                     if(not target.isAliveTrick())
                         cb.stop()
-                    if(cb.isLast() or not target.isAliveTrick())
+                    if(cb.isLast() or not target.isAliveTrick() or not caster.isAliveTrick())
                         caster.unpause()
                         caster.setAnimation("stand")
+                        target.setMoveSpeed(ogSpeed)
     startMonsterHpTracking()
-    EventListener.add(EVENT_PLAYER_UNIT_ATTACKED) () ->
-        let attacked = GetAttackedUnitBJ()
-        if(attacked.getTypeId() == CRYPT_FREND)
-            if(attacked.getHP() < .50 * attacked.getMaxHP())
-                attemptToHealFiend(attacked)
     EventListener.onCast(healthBind) (unit caster) ->
         unit target = GetSpellTargetUnit()
         real duration = 8.0
@@ -245,7 +333,93 @@ init
                 if(u.isEnemyOf(caster.getOwner()))
                     caster.damageTarget(u, 300)
                     flashEffect(Abilities.flameStrikeDamageTarget, u, "chest")
-            
+ 
+    // Murloc toss
+    EventListener.onCast(monsterToss) (unit caster) ->
+        let thrown = GetSpellTargetUnit()
+        // find a target
+        group g = getUnitsInRangeOfLocMatchingClosure(900, caster.getPos()) (unit u) ->
+            return u.isEnemyOf(caster.getOwner()) and u.isAliveTrick()
+        if(not g.isEmpty())
+            let target = g.next()
+            SetUnitFacingToFaceUnitTimed(caster, target, 0)
+            let distance = caster.getPos().distanceTo(target.getPos())
+            Knockback3.add(thrown, distance * 2, caster.getPos().angleTo(target.getPos()), angle(PI / 4))
+            getTimer().doPeriodicallyCounted(.10, 100) (CallbackCounted cb) ->
+                // check if there are any enemies nearby
+                group nearby = getUnitsInRangeOfLocMatchingClosure(150, thrown.getPos()) (unit u) ->
+                    return u.isEnemyOf(caster.getOwner())
+                if(not nearby.isEmpty())
+                    let dmg = thrown.getMaxHP()
+                    for unit hurt in nearby
+                        thrown.damageTarget(hurt, dmg)
+                    thrown.explode()
+                    cb.stop()
+
+        g.destr()
+    EventListener.onCast(murlocSpawn) (unit caster) ->
+        for i = 0 to 2
+            unit u = createUnit(caster.getOwner(), MURLOC_DRONE, caster.getPos().polarOffset(caster.getFacingAngle(), 50), caster.getFacingAngle())
+            monsterCreated(u)
+    EventListener.add(EVENT_PLAYER_UNIT_DEATH) () ->
+        if(GetDyingUnit().getTypeId() == MURLOC_BARBATUS)
+            let u = GetDyingUnit()
+            getTimer().doAfter(1) () ->
+                unit head = ReplaceUnitBJ(u, MURLOC_HEAD, bj_UNIT_STATE_METHOD_DEFAULTS)
+                monsterCreated(head)
+    // Murloc Tidal Wave
+    EventListener.onCast(murlocTidalWave) (unit caster) ->
+        // pick two points that are 2000 apart, 1000 behind the caster
+        let top = caster.getPos().polarOffset(caster.getFacingAngle() + angle(PI2 / 3), 1500)
+        let bot = caster.getPos().polarOffset(caster.getFacingAngle() + angle(2 * PI2/3), 1500)
+        let totalSpan = 4000
+        let spanPerWave = 250
+        let segments = (totalSpan / spanPerWave).toInt()
+        let seg = (bot - top).op_div(segments.toReal())
+        let missingSegment = GetRandomInt(((segments / 2).toInt() - 4), ((segments/2).toInt() + 1))
+        for i = 0 to segments - 1
+            if(i < missingSegment or i > missingSegment + 1)
+                let pos = top + seg.op_mult(i.toReal())
+                new DummyCaster()
+                    ..owner(caster.getOwner())
+                    ..origin(pos)
+                    ..castPoint(tidalWaveEffect, 1, OrderIds.carrionswarm, pos.polarOffset(caster.getFacingAngle(), 300))
+
+        let chanceToCastAgain = min(1 - (caster.getHP() / caster.getMaxHP()), .8)
+        if(GetRandomReal(0, 1) < chanceToCastAgain)
+            getTimer().doAfter(1) () ->
+                caster.setFacing(caster.getFacingAngle() + angle(PI/2))
+                caster.resetAbilityCooldown(murlocTidalWave)
+                caster.issueImmediateOrderById(OrderIds.waterelemental)
+    // Set fire
+    EventListener.onCast(ABILITY_SET_FIRE) (unit caster) ->
+        let target = GetSpellTargetUnit()
+        setOnFire(target)
+
+    // Neck Freeze
+    EventListener.onCast(ABILITY_NECK_FREEZE) (unit caster) ->
+        let target = GetSpellTargetUnit()
+        let spd = target.getMoveSpeed()
+        PTQUtils.enableFlyingForUnit(target)
+        target.pause()
+        target.setMoveSpeed(1)
+        SetUnitLookAt(target, "bone_head", caster, 0, 0, 0)
+        let time = 3.
+        target.setFlyHeight(200, 200)
+        let tick = .10
+        let og = caster.getFacingAngle()
+        let radPerTick = PI2 * 4 / (time / tick)
+        boneCrack.playOnPoint(target.getPos3Real())
+        getTimer().doPeriodicallyTimed(tick, time) (CallbackCounted cb) ->
+            if(cb.isLast())
+                target.setMoveSpeed(spd)
+                ResetUnitLookAt(target)
+                caster.damageTarget(target, 500)
+                target.unpause()
+                caster.setFlyHeight(0, 0)
+            else
+                target.setFacing(og + angle(radPerTick * cb.getCount()))
+
 
 
     

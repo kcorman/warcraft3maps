@@ -174,8 +174,6 @@ init
 
 
     waves = new LinkedList<Wave>
-
-
     waves.add(new Wave(toList(
         new UnitAndAmount(ZOMBIE, 5)
     )))
@@ -206,14 +204,6 @@ init
         new UnitAndAmount(GHOSTMANCER, 2)
     )))
     waves.add(new Wave(toList(
-        new UnitAndAmount(ZOMBIE, 7),
-        new UnitAndAmount(TUFF_ZOMBIE, 2),
-        new UnitAndAmount(GHOUL, 5),
-        new UnitAndAmount(MEAT_WAGON, 3),
-        new UnitAndAmount(BIG_GOOL, 1),
-        new UnitAndAmount(GHOSTMANCER, 1)
-    )))
-    waves.add(new Wave(toList(
         new UnitAndAmount(GIANT_GHOUL, 1, true) // boss wave
     )))
     waves.add(new Wave(toList(
@@ -231,7 +221,6 @@ init
         new UnitAndAmount(MEAT_WAGON, 1),
         new UnitAndAmount(ZOMBIEMANCER, 8)
     )))
-    // crashes here
     waves.add(new Wave(toList(
         new UnitAndAmount(LIFE_STEALING_GHOST, 2),
         new UnitAndAmount(GHOUL, 4)
@@ -288,7 +277,30 @@ init
     waves.add(new Wave(toList(
         new UnitAndAmount(UNSTOPPABLE_TANK, 1) // boss
     )))
-
+    waves.add(new Wave(toList(
+        new UnitAndAmount(MURLOC_DRONE, 8)
+    )))
+    waves.add(new Wave(toList(
+        new UnitAndAmount(MURLOC_BARBATUS, 2),
+        new UnitAndAmount(MURLOC_DRONE, 8)
+    )))
+    waves.add(new Wave(toList(
+        new UnitAndAmount(MURLOC_BARBATUS, 2),
+        new UnitAndAmount(MURLOC_DRONE, 8),
+        new UnitAndAmount(MURLOC_QUEEN, 1)
+    )))
+    waves.add(new Wave(toList(
+        new UnitAndAmount(MURLOC_GENERAL, 1, true)
+    )))
+    waves.add(new Wave(toList(
+        new UnitAndAmount(FIRE_ELEMENTAL, 3)
+    )))
+    waves.add(new Wave(toList(
+        new UnitAndAmount(ICE_ELEMENTAL, 4)
+    )))
+    waves.add(new Wave(toList(
+        new UnitAndAmount(AERO_BEAR, 1)
+    )))
     waves.add(new Wave(toList(
         new UnitAndAmount(DETH_NIGHT, 2),
         new UnitAndAmount(CRYPT_FREND, 8),

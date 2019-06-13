@@ -1,0 +1,42 @@
+package BasicAI
+import LinkedList
+import ClosureEvents
+import ClosureTimers
+import GameTimer
+import TimerUtils
+
+public abstract class AbstractAIHandler
+    construct(unit u)
+        this.u = u
+        this.previousTickHP = u.getHP()
+    constant unit u
+    real previousTickHP
+    real lastOrderTime
+    function onTick()
+    function onDiffHP(real diff)
+    function onDeath()
+    function trackOrderTime()
+        lastOrderTime = getElapsedGameTime()
+    function getTimeSinceLastOrder() returns real
+        return getElapsedGameTime() - lastOrderTime
+
+LinkedList<AbstractAIHandler> aiHandles = new LinkedList<AbstractAIHandler>
+
+public function addAI(AbstractAIHandler handler)
+    aiHandles.add(handler)
+
+init
+    getTimer().doPeriodically(.10) (CallbackPeriodic cb) ->
+        let aiItr = aiHandles.iterator()
+        while(aiItr.hasNext())
+            let val = aiItr.next()
+            let hp = val.u.getHP()
+            let hpDiff = hp - val.previousTickHP
+            val.onTick()
+            if(hpDiff.abs() > 1)
+                val.onDiffHP(hpDiff)
+                val.previousTickHP = val.u.getHP()
+            if(not val.u.isAliveTrick())
+                val.onDeath()
+                aiItr.remove()
+            

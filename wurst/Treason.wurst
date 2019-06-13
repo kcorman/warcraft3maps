@@ -10,7 +10,7 @@ constant real MOVEMENT_SPEED = 400
 constant real TICK_TIME = 0.04
 constant real ACTUAL_SPIN = (3.14  * 2 / 5)
 constant real FLY_HEIGHT = 200
-constant SoundDefinition snd = new SoundDefinition("war3mapImported\\Screeching.wav", false)
+constant SoundDefinition snd = new SoundDefinition("war3mapImported\\Screeching.wav", false, true)
 class SpinAttack
     unit caster
     real dmg
@@ -45,7 +45,7 @@ class SpinAttack
             SpinAttack sa = (GetExpiredTimer().getData() castTo SpinAttack)
             group g = GetUnitsInRangeOfLocAll(150, Location(sa.caster.getX(), sa.caster.getY()))
             for unit u in g
-                if(u != sa.caster)
+                if(u.isEnemyOf(sa.caster.getOwner()))
                     sa.caster.damageTarget(u, sa.dmg)
             g.destr()
         end))
