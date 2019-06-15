@@ -31,7 +31,7 @@ class CrushingWave
             CrushingWave sa = (GetExpiredTimer().getData() castTo CrushingWave)
             sa.caster.setPosReal(sa.caster.getPos3Real() + sa.movementVec * 4)
             sa.startMoveTimer()
-            GetExpiredTimer().destr()
+            GetExpiredTimer().release()
         end))
         
 
@@ -46,7 +46,7 @@ class CrushingWave
                 sa.caster.setPathing(true)
                 ResetUnitAnimation(sa.caster)
                 // sa.caster.show()
-                GetExpiredTimer().destr()
+                GetExpiredTimer().release()
         end))
 init
     trigger t = CreateTrigger()

@@ -11,7 +11,7 @@ public abstract class AbstractAIHandler
         this.previousTickHP = u.getHP()
     constant unit u
     real previousTickHP
-    real lastOrderTime
+    real lastOrderTime = 0
     function onTick()
     function onDiffHP(real diff)
     function onDeath()
@@ -38,5 +38,6 @@ init
                 val.previousTickHP = val.u.getHP()
             if(not val.u.isAliveTrick())
                 val.onDeath()
-                aiItr.remove()
+                destroy aiItr.remove()
+        destroy aiItr
             

@@ -2,11 +2,13 @@ package PTQConstants
 import SoundUtils
 import Simulate3dSound
 import LinkedList
+import Item
 import TimerUtils
 public constant CROW_FORM = 'Amrf'
 public constant LOCUST = 'Aloc'
 public constant player GoodGusy = Player(10)
 public constant player BadGuy = Player(11)
+item posTestItem = createItem('odef', vec2(0,0))
 
 public function getComputerAlly(player p) returns player
     player result = BadGuy
@@ -23,11 +25,18 @@ public function getUnitsInRangeOfLocMatchingClosure(real radius, vec2 pos, Predi
     for unit u in g
         if(not closure.test(u))
             g.removeUnit(u)
+    destroy closure
     return g
 public interface DelayedEffect
     function run()
 
+public function vec2.testForPathability() returns boolean
+    posTestItem.setPos(this)
+    let res = posTestItem.getPos() == this
+    posTestItem.setPos(vec2(0,0))
+    return res
 public class PTQUtils
+        
     static function enableFlyingForUnit(unit u)
         u.addAbility(CROW_FORM)
         u.removeAbility(CROW_FORM)

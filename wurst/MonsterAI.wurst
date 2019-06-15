@@ -7,6 +7,7 @@ import Assets
 import CustomAbilities
 import ClosureEvents
 import TimerUtils
+import LinkedList
 import GameTimer
 import ClosureTimers
 import TerrainUtils
@@ -34,7 +35,7 @@ public class CryptFrendAI extends AbstractAIHandler
     function attemptToGetHealed()
         // find any DKs
         group dks = getUnitsInRangeOfLocMatchingClosure(2000, u.getPos()) (t) ->
-            return t.getTypeId() == DETH_NIGHT and t.getOwner().isAllyOf(u.getOwner())
+            return t.getTypeId() == DETH_NIGHT and t.getOwner().isAllyOf(u.getOwner()) and t.isAliveTrick()
 
         if(dks.hasNext())
             unit dk = dks.next()
@@ -47,6 +48,70 @@ public class CryptFrendAI extends AbstractAIHandler
             
         dks.destr()
 
+LinkedList<item> nearbyItems = new LinkedList<item>()
+public class PoorSkeletonAI extends AbstractAIHandler
+    item targetItem
+    int gold
+    int lvl = 0
+    construct(unit u)
+        super(u)
+    override function onTick()
+        if(targetItem != null)
+            if(targetItem.getPos().distanceTo(u.getPos()) < 50)
+                targetItem.remove()
+                targetItem = null
+                flashEffect(Abilities.resourceEffectTarget, u, "chest")
+                gold+= 250
+                if(gold >= 750)
+                    upgradeBandit()
+                checkForNearbyGold()
+            else if(getTimeSinceLastOrder() > 3)
+                u.issuePointOrder("move", targetItem.getPos())
+                trackOrderTime()
+        else if(getTimeSinceLastOrder() > 3)
+            checkForNearbyGold()
+        
+    function checkForNearbyGold()
+        trackOrderTime()
+        location l = u.getLoc()
+        rect r = RectFromCenterSizeBJ(l, 700, 700)
+        EnumItemsInRect(r, Condition(() -> begin
+            return GetFilterItem().getTypeId() == 'gold'
+        end)) () ->
+            nearbyItems.add(GetEnumItem())
+        if(not nearbyItems.isEmpty())
+            targetItem = nearbyItems.getFirst()
+            u.issuePointOrder("move", targetItem.getPos())
+            nearbyItems.clear()
+
+    function upgradeBandit()
+        lvl++
+        gold = 0
+        switch(lvl)
+            case 1
+                u.setName("Middle class Skeleton")
+            case 2
+                u.setName("Rich Skeleton")
+            case 3
+                u.setName("Filthy Rich Skeleton")
+            case 4
+                u.setName("1% Skeleton")
+            case 5
+                u.setName("Bill 'Boney' Gates")
+            case 6
+                u.setName("Jeff 'Probably Needs To Eat More' Bezos")
+            case 7
+                u.setName("Okay now you're just letting them get the gold")
+            case 8
+                u.setName("SSJ " + lvl.toString() + " Rich Skeleton")
+        let newHP = u.getMaxHP().toInt() * 2
+        if(newHP < 50000000)
+            u.setBaseDamage(u.getBaseDamage(0) * 2, 0)
+            u.setMaxHP(newHP)
+            u.setHP(u.getMaxHP())
+            u.setArmor(u.getArmor() + 1)
+            u.setScale(1.0 + lvl / 5)
+            flashEffect(Abilities.resurrecttarget, u, "origin")
 public class AeroBearAI extends AbstractAIHandler
     boolean doingRoll = false
     construct(unit u)

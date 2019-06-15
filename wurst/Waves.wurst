@@ -4,6 +4,7 @@ import TimerUtils
 import MonsterAbilities
 import ClosureEvents
 import GameInit
+import ClosureTimers
 import PTQConstants
 import UnitTrainers
 import Units
@@ -45,6 +46,10 @@ int currentWaveIndex = 0
 LinkedList<Wave> waves = null
 timerdialog timerDialog
 Wave currentWave
+public function trackUnitInCurrentWave(unit u)
+    if(currentWave != null)
+        currentWave.actualUnits.add(u)
+
 class Wave
     LinkedList<UnitAndAmount> units
     LinkedList<unit> actualUnits
@@ -56,6 +61,8 @@ class Wave
     
     function spawn()
         currentWave = this
+        addMonsterToWave = (unit u) ->
+            actualUnits.add(u)
         currentWave.failed = false
         actualUnits = new LinkedList<unit>
         for UnitAndAmount amt in units
@@ -63,36 +70,29 @@ class Wave
             for i = 1 to actualAmt
                 unit u = CreateUnit(BadGuy, amt.typ,BAD_GUY_01.getCenterX(), BAD_GUY_01.getCenterY(), 0)
                 monsterCreated(u)
-                actualUnits.add(u)
                 if (not amt.boss)
                     u = CreateUnit(BadGuy, amt.typ,BAD_GUY_02.getCenterX(), BAD_GUY_02.getCenterY(), 0)
                     monsterCreated(u)
-                    actualUnits.add(u)
-        timer orderUnits = getTimer()
-        orderUnits.setData(this castTo int)
-        orderUnits.startPeriodic(5, () -> (begin
-            Wave wave = (GetExpiredTimer().getData() castTo Wave)
-            if(wave.counter % 3 == 0)
-                wave.orderAttack()
-            wave.counter++
+        getTimer()..doPeriodically(5) (cb) ->
+            if(counter % 3 == 0)
+                orderAttack()
+            counter++
             boolean allDead = true
-            for unit u in wave.actualUnits
+            for unit u in actualUnits
                 if(u.isAliveTrick() and u.getOwner() == Player(11))
                     allDead = false
 
             if allDead
-                if(wave.failed)
+                if(failed)
                     print("You lost. Will restart from three waves ago.")
                     currentWaveIndex -= 3
                 else
                     print("Wave defeated")
                     currentWaveIndex = currentWaveIndex + 1
-                wave.actualUnits.clear()
+                actualUnits.clear()
                 Utils.reviveAllheroes()
                 startWave()
                 GetExpiredTimer().destr()
-                    
-        end))
         orderAttack()
     
     function forceEnd()
@@ -113,6 +113,7 @@ function purgeDeadUnits()
         unit u = itr.next()
         if(not u.isAlive())
             itr.remove()
+    destroy itr
 function spawnGoodGusy()
     purgeDeadUnits()
     while(goodUnits.size() > MAX_GOOD_UNITS)
@@ -127,6 +128,7 @@ function spawnGoodGusy()
             goodUnits.add(u)
         else
             itr.remove()
+    destroy itr
 
 
 function startWave()
@@ -140,7 +142,7 @@ function startWave()
     startTimer.start(timeBetweenWaves, () -> (begin
         Wave wa = (GetExpiredTimer().getData() castTo Wave)
         wa.spawn()
-        GetExpiredTimer().destr()
+        GetExpiredTimer().release()
     end))
     if(timerDialog != null)
         DestroyTimerDialog(timerDialog)
@@ -175,27 +177,27 @@ init
 
     waves = new LinkedList<Wave>
     waves.add(new Wave(toList(
-        new UnitAndAmount(ZOMBIE, 5)
+        new UnitAndAmount(ZOMBIE, 4)
     )))
     waves.add(new Wave(toList(
-        new UnitAndAmount(ZOMBIE, 5),
-        new UnitAndAmount(GHOUL, 3)
+        new UnitAndAmount(ZOMBIE, 4),
+        new UnitAndAmount(GHOUL, 2)
     )))
     waves.add(new Wave(toList(
-        new UnitAndAmount(ZOMBIE, 6),
-        new UnitAndAmount(GHOUL, 4),
-        new UnitAndAmount(TUFF_ZOMBIE, 2)
+        new UnitAndAmount(ZOMBIE, 4),
+        new UnitAndAmount(GHOUL, 2),
+        new UnitAndAmount(TUFF_ZOMBIE, 1)
     )))
     waves.add(new Wave(toList(
-        new UnitAndAmount(ZOMBIE, 6),
+        new UnitAndAmount(ZOMBIE, 4),
         new UnitAndAmount(SKELETON_PRIEST, 2),
-        new UnitAndAmount(GHOUL, 4),
-        new UnitAndAmount(TUFF_ZOMBIE, 2)
+        new UnitAndAmount(GHOUL, 2),
+        new UnitAndAmount(TUFF_ZOMBIE, 1)
     )))
     waves.add(new Wave(toList(
-        new UnitAndAmount(ZOMBIE, 6),
+        new UnitAndAmount(ZOMBIE, 4),
         new UnitAndAmount(SKELETON_PRIEST, 2),
-        new UnitAndAmount(GHOUL, 4),
+        new UnitAndAmount(GHOUL, 2),
         new UnitAndAmount(TUFF_ZOMBIE, 4),
         new UnitAndAmount(BIG_GOOL, 1)
     )))
@@ -219,7 +221,7 @@ init
     waves.add(new Wave(toList(
         new UnitAndAmount(ZOMBIE, 5),
         new UnitAndAmount(MEAT_WAGON, 1),
-        new UnitAndAmount(ZOMBIEMANCER, 8)
+        new UnitAndAmount(ZOMBIEMANCER, 4)
     )))
     waves.add(new Wave(toList(
         new UnitAndAmount(LIFE_STEALING_GHOST, 2),
@@ -228,7 +230,7 @@ init
     waves.add(new Wave(toList(
         new UnitAndAmount(ZOMBIE, 5),
         new UnitAndAmount(MEAT_WAGON, 1),
-        new UnitAndAmount(ZOMBIEMANCER, 8),
+        new UnitAndAmount(ZOMBIEMANCER, 6),
         new UnitAndAmount(OBSIDIAN_STATUTE,3)
     )))
     waves.add(new Wave(toList(
@@ -243,11 +245,10 @@ init
         new UnitAndAmount(GHOST_GOLEM, 1)
     )))
     waves.add(new Wave(toList(
-        new UnitAndAmount(GHOST_GOLEM, 6)
+        new UnitAndAmount(GHOST_GOLEM, 3),
+        new UnitAndAmount(LIFE_STEALING_GHOST, 3)
     )))
-    waves.add(new Wave(toList(
-        new UnitAndAmount(LIFE_STEALING_GHOST, 5)
-    )))
+
     waves.add(new Wave(toList(
         new UnitAndAmount(GIANT_GHOUL, 2, false) // boss wave, kinda
     )))
@@ -264,6 +265,9 @@ init
         new UnitAndAmount(CRYPT_FREND, 8)
     )))
     waves.add(new Wave(toList(
+        new UnitAndAmount(DIRE_MAMMOTH, 1)
+    )))
+    waves.add(new Wave(toList(
         new UnitAndAmount(COIL_SNIPER, 1)
     )))
     waves.add(new Wave(toList(
@@ -276,6 +280,9 @@ init
     )))
     waves.add(new Wave(toList(
         new UnitAndAmount(UNSTOPPABLE_TANK, 1) // boss
+    )))
+    waves.add(new Wave(toList(
+        new UnitAndAmount(DIRE_MAMMOTH, 2)
     )))
     waves.add(new Wave(toList(
         new UnitAndAmount(MURLOC_DRONE, 8)
@@ -302,17 +309,30 @@ init
         new UnitAndAmount(AERO_BEAR, 1)
     )))
     waves.add(new Wave(toList(
+        new UnitAndAmount(SKELETON_ROBIN_HOOD, 1)
+    )))
+    waves.add(new Wave(toList(
+        new UnitAndAmount(SKELETON_ROBIN_HOOD, 1),
+        new UnitAndAmount(POOR_SKELETON, 3)
+    )))
+    waves.add(new Wave(toList(
         new UnitAndAmount(DETH_NIGHT, 2),
         new UnitAndAmount(CRYPT_FREND, 8),
         new UnitAndAmount(COIL_SNIPER, 2),
         new UnitAndAmount(COIL_HYDRA, 1) // boss
     )))
     waves.add(new Wave(toList(
-        new UnitAndAmount(GIANT_GHOUL, 10, false) // boss wave, kinda
+        new UnitAndAmount(GIANT_GHOUL, 5, false) // boss wave, kinda
     )))
     waves.add(new Wave(toList(
         new UnitAndAmount(COIL_HYDRA, 1), // boss
         new UnitAndAmount(UNSTOPPABLE_TANK, 2)
+    )))
+    waves.add(new Wave(toList(
+        new UnitAndAmount(SKELETON_ROBIN_HOOD, 2),
+        new UnitAndAmount(LIFE_STEALING_GHOST, 2),
+        new UnitAndAmount(AERO_BEAR, 1),
+        new UnitAndAmount(POOR_SKELETON, 3)
     )))
     trigger trig = CreateTrigger()
     trig.registerPlayerChatEvent(Player(0), "next", false)
@@ -341,4 +361,7 @@ init
             currentWave.forceEnd()
             THE_BANDIT = CreateUnit(THE_BANDIT.getOwner(), THE_BANDIT.getTypeId(), THE_BANDIT.getX(), THE_BANDIT.getY(), 0.0)
     end)
+    EventListener.add(EVENT_PLAYER_UNIT_SUMMON) () ->
+        if(GetSummoningUnit().getOwner() == Player(11))
+            trackUnitInCurrentWave(GetSummonedUnit())
 

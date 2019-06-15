@@ -5,6 +5,7 @@ import GameTimer
 import ClosureTimers
 import TimerUtils
 import ClosureForGroups
+import TerrainUtils
 import Vectors
 import Effect
 import Assets
@@ -25,11 +26,15 @@ constant int MURLOC_HEAD = 'n00O'
 constant int MEAT_WAGON = 'umtw'
 constant int MAX_COILS = 200
 constant SoundDefinition boneCrack = new SoundDefinition(Sounds.skeletonWhat1, false, true)
+constant SoundDefinition SOUND_MAMMOTH_CHARGE_HIT = new SoundDefinition(Sounds.rockHeavyBashFlesh2, false)
+constant SoundDefinition SOUND_MAMMOTH_CHARGE_WINDUP = new SoundDefinition(Sounds.mammothYes1, false)
+public AddMonsterToWaveCb addMonsterToWave = null
 
 interface HealthChangeCallback
     function run(real diff, boolean last) returns boolean
+interface AddMonsterToWaveCb
+    function am(unit monster)
 
-LinkedList<MonsterHealthTracker> hpTrackedMonsters = new LinkedList<MonsterHealthTracker>
 LinkedList<CoilTracker> coilList = new LinkedList<CoilTracker>
 class CoilTracker
     int level = 1
@@ -40,6 +45,8 @@ class CoilTracker
 class RealWrapper
     real val = 0
 public function monsterCreated(unit monster)
+    // This adds the monster to the current wave. Kinda a weird tightly coupled thing
+    addMonsterToWave.am(monster)
     switch(monster.getTypeId())
         case COIL_HYDRA
             monster.setVertexColor(150, 230, 150, 30)
@@ -65,6 +72,8 @@ public function monsterCreated(unit monster)
                     monsterCreated(ReplaceUnitBJ(monster, MURLOC_BARBATUS, bj_UNIT_STATE_METHOD_DEFAULTS))
         case AERO_BEAR
             addAI(new AeroBearAI(monster))
+        case POOR_SKELETON
+            addAI(new PoorSkeletonAI(monster))
         default
             // do nothing
 /*
@@ -122,6 +131,7 @@ function promoteCoil()
             trk.light.setColor(clr)
             flashEffect(Abilities.purgeBuffTarget, trk.coil, "overhead")
             break
+    destroy itr
 public function startCoilTimer()
     coilTimer = getTimer()
     coilTimer.doPeriodically(.10) (CallbackPeriodic cb) ->
@@ -130,7 +140,7 @@ public function startCoilTimer()
             let trk = itr.next()
             if(not trk.caster.isAliveTrick())
                 trk.coil.kill()
-                itr.remove()
+                destroy itr.remove()
                 trk.light.destr()
             else if(trk.coil.isAliveTrick())
                 trk.light.move(false, trk.caster.getPos3with(700), trk.coil.getPos3with(700))
@@ -138,53 +148,15 @@ public function startCoilTimer()
                     trk.coil.issuePointOrder("attack", trk.caster.getPos())
             else
                 trk.light.destr()
-                itr.remove()
+                destroy itr.remove()
                 if(coilList.size() < MAX_COILS)
                     createHydraCoil(trk.caster)
                     createHydraCoil(trk.caster)
                 else
                     promoteCoil()
+        destroy itr
 
 
-class MonsterHealthTracker
-    real prevHP
-    real expiresAfter = 0
-    unit monster
-    HealthChangeCallback cb
-    function update() returns boolean
-        if(expiresAfter != 0.0 and expiresAfter < getElapsedGameTime())
-            cb.run(0., true)
-            return false
-        real diff
-        if(monster.isAliveTrick())
-            diff = monster.getHP() - prevHP
-        else
-            diff = 0. - prevHP
-        boolean result = cb.run(diff, false)
-        prevHP = monster.getHP()
-        if(monster.isAliveTrick())
-            return true and result
-        else
-            cb.run(0., true)
-            return false
-
-function trackMonsterHpEffect(unit monster, real duration, HealthChangeCallback cb)
-    MonsterHealthTracker tracker = new MonsterHealthTracker()
-    tracker.monster = monster
-    tracker.prevHP = monster.getHP()
-    tracker.cb = cb
-    if(duration > 0)
-        tracker.expiresAfter = getElapsedGameTime() + duration
-    hpTrackedMonsters.add(tracker)
-
-
-function startMonsterHpTracking()
-    getTimer().doPeriodically(.10) (CallbackPeriodic cb) ->
-        LLIterator<MonsterHealthTracker> monsters = hpTrackedMonsters.iterator()
-        while(monsters.hasNext())
-            let m = monsters.next()
-            if not m.update()
-                monsters.remove()
 
 LinkedList<unit> unstoppableTanks = new LinkedList<unit>
 timer tankTickTimer = getTimer()
@@ -205,9 +177,10 @@ function handleUnstoppableTank(unit tankMonster)
                         vec2 translate = tank.getPos() + tank.getFacingAngle().direction(250)
                         group g = GetUnitsInRangeOfLocAll(150, PTQUtils.vec2ToLoc(translate))
                         g.forEachFrom() (unit u) ->
-                            if(u.isEnemyOf(tank.getOwner()))
+                            if(u != tank and not u.isInvulnerable())
                                 u.explode()
                         g.destr()
+                destroy tankItr
 
 HashSet<unit> unitsOnFire = new HashSet<unit>()
 
@@ -240,15 +213,19 @@ function setOnFire(unit target)
             target.setOnFire(false)
             target.setMoveSpeed(oldSpeed)
             ef.destr()
+        g.destr()
 class HpWrapper
     real hp
+class VecWrapper
+    vec2 pos
 init
     // Meat Wagon Wagon
-    trigger t = CreateTrigger()
-    t.registerAnyUnitEvent(EVENT_PLAYER_UNIT_SUMMON)
-    t.addCondition(Condition(() -> GetSummonedUnit().getTypeId() == MEAT_WAGON))
-    t.addAction(() -> ReplaceUnitBJ(GetSummonedUnit(), MEAT_WAGON, bj_UNIT_STATE_METHOD_DEFAULTS))
-    
+
+    EventListener.add(EVENT_PLAYER_UNIT_SUMMON) () ->
+        if(GetSummonedUnit().getTypeId() == MEAT_WAGON)
+            let secretWagon = ReplaceUnitBJ(GetSummonedUnit(), MEAT_WAGON, bj_UNIT_STATE_METHOD_DEFAULTS)
+            secretWagon.setBaseDamage(secretWagon.getBaseDamage(0) * 2, 0)
+            monsterCreated(secretWagon)
     // Ghoul Jump
     EventListener.onCast(ghoulJump) (unit caster) ->
         let target = GetSpellTargetUnit()
@@ -268,39 +245,40 @@ init
                     let damage = 100.
                     caster.damageTarget(target, damage)
                     caster.setHP(caster.getHP() + damage)
-                    if(not target.isAliveTrick())
-                        cb.stop()
                     if(cb.isLast() or not target.isAliveTrick() or not caster.isAliveTrick())
                         caster.unpause()
-                        caster.setAnimation("stand")
+                        ResetUnitAnimation(caster)
                         target.setMoveSpeed(ogSpeed)
-    startMonsterHpTracking()
+                        cb.stop()
     EventListener.onCast(healthBind) (unit caster) ->
         unit target = GetSpellTargetUnit()
         real duration = 8.0
         let ln = addLightning(LIGHTNING_SPIRIT_LINK, true, caster.getPos(), target.getPos())
-        trackMonsterHpEffect(target, duration) (diff, last) ->
-            boolean alive = true
-            if(last)
+        EventListener.add(caster, EVENT_PLAYER_UNIT_DAMAGED) () ->
+            let dmg = GetEventDamage()
+            BlzSetEventDamage(0)
+            group dmged = getUnitsInRangeOfLocMatchingClosure(200, target.getPos()) (unit u) ->
+                return u.isEnemyOf(caster.getOwner())
+            for unit u in dmged
+                caster.damageTarget(u, dmg)
+            flashEffect(Abilities.lightningBoltMissile, target, "overhead")
+            dmged.destr()
+        getTimer().doPeriodicallyTimed(.10, duration) (CallbackCounted cb) ->
+            if(cb.isLast() or not caster.isAliveTrick() or not target.isAliveTrick())
+                cb.stop()
                 ln.destr()
-            else
-                if(not target.isAliveTrick())
-                    alive = false
+                unregisterEventsForUnit(caster)               
+                if(not target.isAliveTrick())     
                     caster.resetAbilityCooldown(healthBind)
-                else
-                    ln.move(true, caster.getPos(), target.getPos())
-                    if(diff < 0)
-                        caster.addHP(-diff)
-                        target.addHP(diff)
-                if(not alive)
-                    ln.destr()
-            return alive
+            else
+                ln.move(true, caster.getPos(), target.getPos())
+
     EventListener.onCast(counterStrike) (unit caster) ->
         int lvl = caster.getAbilityLevel(counterStrike)
         caster.pause()
         caster.setAnimation(2)
         let whp = new HpWrapper()
-        trackMonsterHpEffect(caster, 3.0) (diff, last) ->
+        /*trackMonsterHpEffect(caster, 3.0) (diff, last) ->
             if(last)
                 caster.setAnimation("Attack Walk Stand Spin")
                 group g = GetUnitsInRangeOfLocAll(200, caster.getLoc())
@@ -314,9 +292,9 @@ init
             else if(diff < 0)
                 whp.hp -= (diff * lvl)
                 caster.addHP(-diff)
-            return true
+            return true*/
     EventListener.onCast('A01L') (unit caster) -> // demonic teleport
-        let target = getSpellTargetPos()
+        let target = EventData.getSpellTargetPos()
         addEffect(Abilities.flameStrike, caster.getPos())
         caster.setAnimation("Stand Work")
         getTimer().doAfter(.5) () ->
@@ -419,6 +397,97 @@ init
                 caster.setFlyHeight(0, 0)
             else
                 target.setFacing(og + angle(radPerTick * cb.getCount()))
+    
+    EventListener.onCast(ABILITY_ROBINHOOD_ARROW) (unit caster) ->
+        let ef = addEffect(Abilities.ballistaMissile, caster.getPos3Real().polarProject(100, caster.getFacingAngle(), angle(0)))
+        ef.setHeight(60)
+        ef.setYaw(caster.getFacingAngle().radians())
+        let area = 125.
+        let speed = 900
+        let rate = 0.04
+        let movementPerTick = speed * rate
+        let ang = caster.getFacingAngle()
+        let movementVec = ang.direction(movementPerTick)
+        getTimer().doPeriodicallyTimed(rate, 20) (CallbackCounted cb) ->
+            let newPos = ef.getPos3() + movementVec.toVec3()
+            ef.setPos(newPos)
+            ef.setHeight(newPos.getTerrainZ() - 400)
+            let movingTo = newPos.toVec2() + movementVec
+            if(movingTo.testForPathability())
+                group g = getUnitsInRangeOfLocMatchingClosure(area, movingTo) (unit u) ->
+                    return u.isEnemyOf(caster.getOwner()) and not u.isType(UNIT_TYPE_STRUCTURE)
+                for unit u in g
+                    u.setPos(movingTo)
+                g.destr()
+            else
+                cb.stop()
+                let dmg = movingTo.distanceTo(caster.getPos()) / 5
+                ef.destr()
+                group g = getUnitsInRangeOfLocMatchingClosure(area, movingTo) (unit u) ->
+                    return u.isEnemyOf(caster.getOwner()) and not u.isType(UNIT_TYPE_STRUCTURE)
+                for unit u in g
+                    caster.damageTarget(u, dmg)
+                g.destr()
+    // mammoth ram
+    EventListener.onCast(ABILITY_RAM) (unit caster) ->
+        let target = GetSpellTargetUnit()
+        SetUnitFacingToFaceUnitTimed(caster, target, 0)
+        caster.pause()
+        caster.setAnimation("Spell")
+        let spd = caster.getMoveSpeed()
+        SOUND_MAMMOTH_CHARGE_WINDUP.playOnPoint(caster.getPos3Real())
+        getTimer().doAfter(1.5) () ->
+            caster.unpause()
+            let dist = caster.getPos().distanceTo(target.getPos())
+            if(dist > 250)
+                caster.setMoveSpeed(522)
+                caster.issueTargetOrder("attack", target)
+                caster.setAnimation("Walk Fast")
+                getTimer().doPeriodicallyCounted(.10, 50) (CallbackCounted cb) ->
+                    if(caster.getPos().distanceTo(target.getPos()) < 200)
+                        SOUND_MAMMOTH_CHARGE_HIT.playOnPoint(target.getPos3Real())
+                        caster.setMoveSpeed(spd)
+                        caster.issuePointOrder("attack", caster.getPos())
+                        cb.stop()
+                        Knockback3.add(target, 1400, caster.getFacingAngle(), angle(PI/4))
+                        caster.damageTarget(target, 150 + dist / 3)
+                    else if(cb.isLast())
+                        caster.setMoveSpeed(spd)
+                        caster.issuePointOrder("attack", caster.getPos())
+            else
+                SOUND_MAMMOTH_CHARGE_HIT.playOnPoint(target.getPos3Real())
+                Knockback3.add(target, 500, caster.getFacingAngle(), angle(PI/3))
+                caster.damageTarget(target, 250)
+    // mammoth turn into skeleton
+    EventListener.add(EVENT_PLAYER_UNIT_DEATH) () ->
+        let ded = GetDyingUnit()
+        if(ded.getTypeId() == DIRE_MAMMOTH)
+            // use a dummy to keep next wave from starting
+            let dummy = createUnit(ded.getOwner(), UnitIds.footman, vec2(0,0), angle(0))
+            monsterCreated(dummy)
+            dummy.setInvulnerable(true)
+            dummy.hide()
+            getTimer().doAfter(2) () ->
+                unit u = ReplaceUnitBJ(ded, SKELETON_MAMMOTH, bj_UNIT_STATE_METHOD_MAXIMUM)
+                flashEffect(Abilities.animateDeadTarget, u, "head")
+                monsterCreated(u)
+                dummy.kill()
+                dummy.remove()
+    // Robin hood gold drop
+    EventListener.add(EVENT_PLAYER_UNIT_ATTACKED) () ->
+        let attacker = GetAttacker()
+        var gold = 250
+        if(attacker.getTypeId() == SKELETON_ROBIN_HOOD)
+            let attacked = GetAttackedUnitBJ()
+            if(attacked.isType(UNIT_TYPE_HERO))
+                getTimer().doAfter(1) () ->
+                    if(attacked.getOwner().getGold() >= gold)
+                        attacked.getOwner().addGold(-gold)
+                    createTTEx(attacked.getPos3Real(), vec2(0, -.03), "-" + gold.toString(), 10, 2, colorA(255, 215, 0,0))
+                    if(attacked.getOwner().getGold() > 0)
+                        createItem('gold', attacked.getPos().polarOffset(attacked.getPos().angleTo(attacker.getPos()), 100))
+            
+
 
 
 
