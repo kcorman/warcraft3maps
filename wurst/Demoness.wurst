@@ -79,6 +79,9 @@ function incrementSoulCount(unit u, int delta)
         wrp = new NumWrapper()
         soulCount.put(u, wrp)
     wrp.val += delta
+    if(u.hasAbility(HARVEST_SOULS))
+        if(u.getOwner() == GetLocalPlayer())
+            BlzSetAbilityTooltip(HARVEST_SOULS, "Soul Harvest - |cff6f2583Current Souls: " + wrp.val.toString() + "|r", 0)
 
 init
     spellSoulCost.put(SUMMON_SOUL_WYRM, 10)
@@ -153,10 +156,10 @@ init
         incrementSoulCount(caster, -1)
         let soulDamage = souls * 25
         let lvl = caster.getAbilityLevel(SOUL_FIRE)
-        let maxDamage = 250 * lvl
+        let maxDamage = 200 * lvl + (caster.getInt(true) * 2)
         let dmg = 50 * lvl + min(maxDamage, soulDamage).toReal()
         group damaged = GetUnitsInRangeOfLocAll(500, PTQUtils.vec2ToLoc(origin))
-        print("Damage = " + dmg.toString())
+        // print("Damage = " + dmg.toString())
         for u in damaged
             if(not u.isEnemyOf(caster.getOwner()) or SquareRoot(u.getPos().distanceToSegmentSq(caster.getPos(), target)) > 90)
                 damaged.removeUnit(u)

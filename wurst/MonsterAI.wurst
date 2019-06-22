@@ -57,7 +57,11 @@ public class PoorSkeletonAI extends AbstractAIHandler
         super(u)
     override function onTick()
         if(targetItem != null)
+            if(not targetItem.isAlive())
+                targetItem = null
+                u.issuePointOrder("attack", gg_rct_BanditCamp.getCenter())
             if(targetItem.getPos().distanceTo(u.getPos()) < 50)
+                targetItem.setPos(vec2(0,0))
                 targetItem.remove()
                 targetItem = null
                 flashEffect(Abilities.resourceEffectTarget, u, "chest")
@@ -83,6 +87,8 @@ public class PoorSkeletonAI extends AbstractAIHandler
             targetItem = nearbyItems.getFirst()
             u.issuePointOrder("move", targetItem.getPos())
             nearbyItems.clear()
+        else
+            u.issuePointOrder("attack", gg_rct_BanditCamp.getCenter())
 
     function upgradeBandit()
         lvl++

@@ -220,7 +220,6 @@ class VecWrapper
     vec2 pos
 init
     // Meat Wagon Wagon
-
     EventListener.add(EVENT_PLAYER_UNIT_SUMMON) () ->
         if(GetSummonedUnit().getTypeId() == MEAT_WAGON)
             let secretWagon = ReplaceUnitBJ(GetSummonedUnit(), MEAT_WAGON, bj_UNIT_STATE_METHOD_DEFAULTS)
@@ -234,11 +233,13 @@ init
         Knockback3.add(caster, distance * 2, caster.getPos().angleTo(target.getPos()), angle(PI / 4))
         getTimer().doPeriodicallyCounted(.04, 500) (cb) ->
             if(caster.getPos().distanceTo(target.getPos()) < 100)
-                let ogSpeed = target.getMoveSpeed()
                 Knockback3.setVel(caster, 0, angle(0), angle(0))
                 caster.setAnimation("Stand Channel")
                 caster.pause()
-                target.setMoveSpeed(10)
+                new DummyCaster()
+                    ..origin(target.getPos())
+                    ..owner(caster.getOwner())
+                    ..castTarget(ABILITY_STUN, 1, OrderIds.firebolt, target)
                 cb.stop()
                 getTimer().doPeriodicallyCounted(.5, 6) (CallbackCounted cb) ->
                     flashEffect(Objects.battrollBlood, target.getPos(), 2)
@@ -248,7 +249,6 @@ init
                     if(cb.isLast() or not target.isAliveTrick() or not caster.isAliveTrick())
                         caster.unpause()
                         ResetUnitAnimation(caster)
-                        target.setMoveSpeed(ogSpeed)
                         cb.stop()
     EventListener.onCast(healthBind) (unit caster) ->
         unit target = GetSpellTargetUnit()
@@ -487,8 +487,5 @@ init
                     if(attacked.getOwner().getGold() > 0)
                         createItem('gold', attacked.getPos().polarOffset(attacked.getPos().angleTo(attacker.getPos()), 100))
             
-
-
-
 
     

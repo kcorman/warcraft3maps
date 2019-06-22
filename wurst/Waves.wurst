@@ -7,7 +7,9 @@ import GameInit
 import ClosureTimers
 import PTQConstants
 import UnitTrainers
+import Abilities
 import Units
+import CustomUnitIds
 import CustomUnits
 constant int NUM_WAVES = 13
 constant int MAX_GOOD_UNITS = 5
@@ -40,12 +42,14 @@ constant int INITIAL_WOOD = 200
 constant int UNIT_TRAINER_ABILITY = 'A00P'
 constant rect BAD_GUY_01 = gg_rct_LandBad01
 constant rect BAD_GUY_02 = gg_rct_LandBad02 
+constant rect BAD_GUY_03 = gg_rct_LandBad03 
 LinkedList<unit> goodUnits = new LinkedList<unit>
 
 int currentWaveIndex = 0
 LinkedList<Wave> waves = null
 timerdialog timerDialog
 Wave currentWave
+leaderboard currentWaveBoard
 public function trackUnitInCurrentWave(unit u)
     if(currentWave != null)
         currentWave.actualUnits.add(u)
@@ -59,28 +63,43 @@ class Wave
     construct(LinkedList<UnitAndAmount> units)
         this.units = units
     
+    function spawnMonster(UnitAndAmount amt)
+        int actualAmt = (amt.relativeAmount * difficultyMultplier).toInt()
+        for i = 1 to actualAmt
+            unit u = createUnit(BadGuy, amt.typ, BAD_GUY_03.getCenter(), angle(0))
+            flashEffect(Abilities.darkSummonTarget, u, "origin")
+            monsterCreated(u)
+            if (not amt.boss)
+                u = createUnit(BadGuy, amt.typ, BAD_GUY_01.getCenter(), angle(0))
+                flashEffect(Abilities.darkSummonTarget, u, "origin")
+                monsterCreated(u)
+                u = createUnit(BadGuy, amt.typ, BAD_GUY_02.getCenter(), angle(0))
+                flashEffect(Abilities.darkSummonTarget, u, "origin")
+                monsterCreated(u)
     function spawn()
         currentWave = this
         addMonsterToWave = (unit u) ->
             actualUnits.add(u)
         currentWave.failed = false
         actualUnits = new LinkedList<unit>
+        LeaderboardSetLabel(currentWaveBoard, "Wave - " + (currentWaveIndex + 1).toString())
         for UnitAndAmount amt in units
-            int actualAmt = (amt.relativeAmount * difficultyMultplier).toInt()
-            for i = 1 to actualAmt
-                unit u = CreateUnit(BadGuy, amt.typ,BAD_GUY_01.getCenterX(), BAD_GUY_01.getCenterY(), 0)
-                monsterCreated(u)
-                if (not amt.boss)
-                    u = CreateUnit(BadGuy, amt.typ,BAD_GUY_02.getCenterX(), BAD_GUY_02.getCenterY(), 0)
-                    monsterCreated(u)
+            spawnMonster(amt)
+        updateBoardRemainingEnemies()
         getTimer()..doPeriodically(5) (cb) ->
             if(counter % 3 == 0)
                 orderAttack()
             counter++
             boolean allDead = true
-            for unit u in actualUnits
-                if(u.isAliveTrick() and u.getOwner() == Player(11))
+            let itr = actualUnits.iterator()
+            while(itr.hasNext())
+                unit u = itr.next()
+                if(u.isAliveTrick())
                     allDead = false
+                else
+                    itr.remove()
+            destroy itr
+
 
             if allDead
                 if(failed)
@@ -116,6 +135,7 @@ function purgeDeadUnits()
     destroy itr
 function spawnGoodGusy()
     purgeDeadUnits()
+    THE_BANDIT.issuePointOrder("attack", gg_rct_BanditCamp.getCenter())
     while(goodUnits.size() > MAX_GOOD_UNITS)
         goodUnits.pop().explode()
     LinkedList<unit> trainers = getUnitTrainers()
@@ -125,6 +145,7 @@ function spawnGoodGusy()
         unit template = itr.next()
         if(template.isAliveTrick())
             unit u = createUnit(GoodGusy, template.getTypeId(), spawnSpot, angle(0))
+            flashEffect(Abilities.massTeleportTarget, u, "origin")
             goodUnits.add(u)
         else
             itr.remove()
@@ -177,21 +198,21 @@ init
 
     waves = new LinkedList<Wave>
     waves.add(new Wave(toList(
-        new UnitAndAmount(ZOMBIE, 4)
+        new UnitAndAmount(ZOMBIE, 3)
     )))
     waves.add(new Wave(toList(
-        new UnitAndAmount(ZOMBIE, 4),
-        new UnitAndAmount(GHOUL, 2)
+        new UnitAndAmount(ZOMBIE, 3),
+        new UnitAndAmount(GHOUL, 1)
     )))
     waves.add(new Wave(toList(
-        new UnitAndAmount(ZOMBIE, 4),
-        new UnitAndAmount(GHOUL, 2),
+        new UnitAndAmount(ZOMBIE, 3),
+        new UnitAndAmount(GHOUL, 1),
         new UnitAndAmount(TUFF_ZOMBIE, 1)
     )))
     waves.add(new Wave(toList(
-        new UnitAndAmount(ZOMBIE, 4),
-        new UnitAndAmount(SKELETON_PRIEST, 2),
-        new UnitAndAmount(GHOUL, 2),
+        new UnitAndAmount(ZOMBIE, 3),
+        new UnitAndAmount(SKELETON_PRIEST, 1),
+        new UnitAndAmount(GHOUL, 1),
         new UnitAndAmount(TUFF_ZOMBIE, 1)
     )))
     waves.add(new Wave(toList(
@@ -364,4 +385,18 @@ init
     EventListener.add(EVENT_PLAYER_UNIT_SUMMON) () ->
         if(GetSummoningUnit().getOwner() == Player(11))
             trackUnitInCurrentWave(GetSummonedUnit())
-
+    EventListener.add(EVENT_PLAYER_UNIT_DEATH) () ->
+        if(GetDyingUnit().getOwner() == BadGuy)
+            updateBoardRemainingEnemies()
+    getTimer().doAfter(.04) () ->
+        currentWaveBoard = CreateLeaderboard()
+        LeaderboardSetLabelBJ(currentWaveBoard, "Wave - 0")
+        ForceSetLeaderboardBJ(currentWaveBoard, GOOD_GUY_FORCE)
+        LeaderboardDisplayBJ(true, currentWaveBoard)
+        LeaderboardAddItem(currentWaveBoard, "Remaining Enemies", 0, BadGuy)
+        LeaderboardSetSizeByItemCount(currentWaveBoard, 1)
+    unit u = createUnit(Player(0), PALADOUT, gg_rct_helperArea.getCenter(), angle(0))
+    u.setLevel(12, true)
+function updateBoardRemainingEnemies()
+    if(currentWaveBoard != null and currentWave != null)
+        LeaderboardSetItemValue(currentWaveBoard, LeaderboardGetPlayerIndex(currentWaveBoard, BadGuy), currentWave.actualUnits.size())

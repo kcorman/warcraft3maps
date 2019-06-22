@@ -1,0 +1,101 @@
+package Paladout
+import ClosureEvents
+import CustomAbilities
+import GameTimer
+import ClosureTimers
+import TimerUtils
+import ClosureForGroups
+import Texttag
+import Vectors
+import GameInit
+import MissleEffects
+import Effect
+import Assets
+import OrderIds
+import HashSet
+import Lightning
+import DummyCaster
+import SoundUtils
+import Knockback3
+import AbilityUtils
+import LinkedList
+import CustomUnits
+import HashList
+import CustomSummonedUnits
+import HashMap
+import PTQConstants
+import CustomUnitIds
+LinkedList<int> auraProgression = new LinkedList<int>
+LinkedList<unit> paladouts = new LinkedList<unit>
+int curIndex = 0
+init
+
+    auraProgression.add(ABILITY_PALADOUT_DEVOTION)
+    auraProgression.add(ABILITY_PALADOUT_ENDURANCE)
+    auraProgression.add(ABILITY_PALADOUT_THORNS)
+    EventListener.onCast(ABILITY_FACE_SMASH) (unit caster) ->
+        let target = GetSpellTargetUnit()
+        let lvl = caster.getAbilityLevel(ABILITY_FACE_SMASH)
+        let dmg = caster.getStr(true) * 2 + lvl * 75.0
+        print ("Dmg = " + dmg.toString())
+        caster.damageTarget(target, dmg, true, false, ATTACK_TYPE_HERO)
+        getTimer().doAfter(.2) () ->
+            Knockback3.add(target, 2000, caster.getPos().angleTo(target.getPos()), angle(PI/6))
+            flashEffect(Abilities.holyBoltMissile, target, "chest")
+    EventListener.onCast(ABILITY_WWUD) (unit caster) ->
+        let target = GetSpellTargetUnit()
+        let lvl = caster.getAbilityLevel(ABILITY_WWUD)
+        let ef = addEffect(Abilities.voodooAuraTarget, target, "chest")
+        let listener = EventListener.add(EVENT_PLAYER_UNIT_DAMAGED) () ->
+            let src = GetEventDamageSource()
+            if(src == caster)
+                let dmg = EventData.getDamage() * (.5 + .5 * lvl)
+                print("Event dmg = " + dmg.toString())
+                target.setHP(target.getHP() + dmg)
+
+        print("Started listener for damage")
+        getTimer().doAfter(5) () ->
+            print("Destroying listener for damage")
+            unregisterEventsForUnit(caster)
+            ef.destr()
+            destroy listener
+
+    EventListener.add(EVENT_PLAYER_HERO_SKILL) () ->
+        let learned = GetLearnedSkill()
+        if(learned == ABILITY_PALADOUT_SPIDY_AURA and GetLearnedSkillLevel() == 1)
+            paladouts.add(EventData.getUnitLearning())
+    EventListener.add(EVENT_PLAYER_UNIT_ATTACKED) () ->
+        let victim = GetAttackedUnitBJ()
+        let attacker = GetAttacker()
+        unit pal = null
+        for unit p in paladouts
+            if (not p.getOwner().isEnemyOf(victim.getOwner())) and p.hasAbility(ABILITY_PALADOUT_SPIDY_AURA) and victim.getPos().distanceTo(p.getPos()) <= 700
+                pal = p
+                break
+        if(pal != null)
+            let lvl = pal.getAbilityLevel(ABILITY_PALADOUT_SPIDY_AURA)
+            if(GetRandomInt(0, 9) < lvl)
+                new DummyCaster()
+                    ..owner(victim.getOwner())
+                    ..origin(victim.getPos())
+                    ..castTarget(ABILITY_SPIDY_WEB_EFFECT, 1, OrderIds.ensnare, attacker)
+                if(victim.getOwner().getController() == MAP_CONTROL_COMPUTER and victim.getHP() < victim.getMaxHP() / 2)
+                    victim.issuePointOrder("move", attacker.getPos().polarOffset(attacker.getFacingAngle(), 300))
+    // TODO: Switching auras is broken
+    EventListener.onCast(ABILITY_PALADOUT_AURA) (unit caster) ->
+        let lvl = caster.getAbilityLevel(ABILITY_PALADOUT_AURA)
+        caster.disableAbility(auraProgression.get(curIndex), true, true)
+        curIndex = curIndex + 1
+        if(curIndex == auraProgression.size())
+            curIndex = 0
+        caster.disableAbility(auraProgression.get(curIndex), false, false)
+        caster.setAbilityLevel(auraProgression.get(curIndex), lvl)
+    
+    EventListener.add(EVENT_PLAYER_HERO_SKILL) () ->
+        let learned = GetLearnedSkill()
+        if(learned == ABILITY_PALADOUT_AURA and GetLearnedSkillLevel() == 1)
+            for int i = 0 to auraProgression.size() - 1
+                let abil = auraProgression.get(i)
+                GetLearningUnit().addAbility(abil)
+                if i != 0
+                    GetLearningUnit().disableAbility(abil, true, true)

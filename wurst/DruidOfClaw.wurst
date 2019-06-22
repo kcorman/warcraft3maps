@@ -1,0 +1,101 @@
+package DruidOfClaw
+import ClosureEvents
+import CustomAbilities
+import GameTimer
+import ClosureTimers
+import TimerUtils
+import ClosureForGroups
+import Texttag
+import Vectors
+import GameInit
+import MissleEffects
+import Effect
+import Assets
+import OrderIds
+import HashSet
+import Lightning
+import DummyCaster
+import SoundUtils
+import Knockback3
+import AbilityUtils
+import LinkedList
+import CustomUnits
+import HashList
+import CustomSummonedUnits
+import HashMap
+import PTQConstants
+import CustomUnitIds
+
+let SOUND_HEFFALUMP = new SoundDefinition("war3mapImported\\Heffalump.mp3", false)
+
+init
+    EventListener.add(EVENT_PLAYER_HERO_SKILL) () ->
+        if(EventData.getAbilityIdLearned() == ABILITY_BEAR_REGEN and GetLearningUnit().getTypeId() == DRUID_OF_CLAW_MORPH)
+            GetLearningUnit().disableAbility(ABILITY_BEAR_REGEN, true, false)
+
+    EventListener.onCast(ABILITY_HEFFALUMPS) (unit caster) ->
+        let lvl = caster.getAbilityLevel(ABILITY_HEFFALUMPS)
+        let dmg = 75 * lvl + caster.getInt(true)
+        let snd = PTQUtils.playLocalSound(SOUND_HEFFALUMP, caster.getPos(), 10)
+        let tg = caster.getPos().polarOffset(caster.getFacingAngle(), 300)
+        getTimer().doPeriodicallyTimed(.4, 8) (CallbackCounted cb) ->
+            if(caster.isChannelingAbility(ABILITY_HEFFALUMPS))
+                let randomDirection = GetRandomReal(0, PI2)
+                let randomDist = GetRandomReal(0, 500)
+                let randomPt = caster.getPos().polarOffset(angle(randomDirection), randomDist)
+                let u = createUnit(caster.getOwner(), HEFFALUMP_GHOST, randomPt, caster.getFacingAngle())
+                u.setTimedLife(4)
+                u.setBaseDamage(dmg, 0)
+                u.setVertexColor(GetRandomInt(0,255), GetRandomInt(0,255), GetRandomInt(0,255), 128)
+                u.setScale(.6 + lvl * .2)
+                u.issuePointOrder("attack", tg)
+                flashEffect(Abilities.warStompCaster, u, "origin")
+            else
+                snd.stop(false, true)
+                cb.stop()
+
+    EventListener.onCast(ABILITY_DRUID_MORPH) (unit caster) ->
+        getTimer().doAfter(1.5) () ->
+            caster.disableAbility(ABILITY_BEAR_REGEN, caster.getTypeId() == DRUID_OF_CLAW_MORPH, false)
+    EventListener.onCast(ABILITY_BEAR_THUNDERCLAP) (unit caster) ->
+        let lvl = caster.getAbilityLevel(ABILITY_BEAR_THUNDERCLAP)
+        let isBear = caster.getTypeId() == DRUID_OF_CLAW_MORPH
+
+        let targetUnits = getUnitsInRangeOfLocMatchingClosure(300, caster.getPos()) (unit u) ->
+            return u.isEnemyOf(caster.getOwner()) and not u.isInvulnerable() and u.isAlive()
+        for unit u in targetUnits 
+            if(isBear)
+                Knockback3.add(u, caster.getPos(), 1500)
+            else
+                let angle = caster.getPos().angleTo(u.getPos())
+                let tg = caster.getPos().polarOffset(angle, 350)
+                Knockback3.add(u, tg, 1500)
+        targetUnits.destr()
+    EventListener.onCast(ABILITY_DRUID_SWIP) (unit caster) ->
+        let lvl = caster.getAbilityLevel(ABILITY_DRUID_SWIP)
+        let isBear = caster.getTypeId() == DRUID_OF_CLAW_MORPH
+        var target = EventData.getSpellTargetPos()
+        var dmg = 25.0 * lvl
+        if(isBear)
+            // bear target is always 175 away
+            caster.setAnimation("Attack Slam")
+            target = caster.getPos().polarOffset(caster.getPos().angleTo(target), 175)
+            dmg += caster.getBaseDamage(0) * 1.5
+        else
+            dmg += caster.getInt(true)
+        let facing = caster.getFacingAngle()
+        let itrs = (isBear ? 24 : 12)
+
+        let dist = caster.getPos().distanceTo(target)
+        let arcStart = facing - (itrs / 12) * angle(PI/4)
+
+        let ef = isBear ? Abilities.dragonHawkMissile : Abilities.waterElementalMissile
+        let delta = (PI / 2) / 12
+        getTimer().doPeriodicallyCounted(.05, itrs) (CallbackCounted cb) ->
+            let tg = caster.getPos().polarOffset(arcStart + angle(delta * cb.getCount()), dist)
+            flashEffect(ef, tg)
+            let units = getUnitsInRangeOfLocMatchingClosure(75, tg) (unit u) ->
+                if(u.isEnemyOf(caster.getOwner()) and not u.isInvulnerable() and u.isAlive())
+                    caster.damageTarget(u, dmg)
+                return false
+            units.destr()

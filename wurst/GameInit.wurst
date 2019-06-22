@@ -2,8 +2,10 @@ package GameInit
 import LinkedList
 import HashMap
 import TimerUtils
+import ClosureTimers
 import Effect
 import Assets
+import SoundUtils
 import CustomUnits
 import ClosureEvents
 import PTQConstants
@@ -26,8 +28,11 @@ constant vec2 SHOP1LOC = vec2(7318., -12387.)
 constant vec2 MERC1LOC = vec2(9390., -11863.)
 constant vec2 WEAPON_SHOP_LOC = vec2(8744., -11817.)
 public unit THE_BANDIT = gg_unit_n000_0018
+public unit COOL_TAVERN
 constant rect BanditCamp = gg_rct_BanditCamp
 constant LinkedList<unit> playerHeroes = new LinkedList<unit>
+public constant force GOOD_GUY_FORCE = CreateForce()
+public constant boolean CINEMATIC_ENABLED = true
 
 unit weaponShop
 
@@ -187,6 +192,80 @@ function createDialogueForSetting<T>(player p, string settingName,LinkedList<Opt
             if(nextWindow != null)
                 nextWindow.display(p, true)
     return d
+
+
+unit banditHelper1
+unit banditHelper2
+sound helpUsOut = gg_snd_HiredToHelpUsOut
+sound foodOnTheTable = gg_snd_FoodOnTheTable
+function panCameraForForce(force f, camerasetup cam, real duration)
+    for player p in Utils.allPlayers
+        if(f.containsPlayer(p))
+            p.cameraSetupApply(true, cam, duration)
+// this function gets run once a few milliseconds after the game starts
+function postInit()
+    createTTEx(gg_rct_unittrainers.getCenter().withTerrainZ(150) + vec3(0,50,0), "Purchase Builders Here", 10, colorA(255,50,50,255))
+    if(CINEMATIC_ENABLED)
+        doIntiialCinematic()
+function doIntiialCinematic()
+    group g = getUnitsInRangeOfLocMatchingClosure(400, THE_BANDIT.getPos()) (unit u) ->
+        return not u.isType(UNIT_TYPE_STRUCTURE) and u.getOwner() == THE_BANDIT.getOwner()
+    banditHelper1 = g.next()
+    banditHelper2 = g.next()
+    g.close()
+    SetUnitFacingToFaceUnitTimed(banditHelper1, THE_BANDIT, 0)
+    SetUnitFacingToFaceUnitTimed(banditHelper2, THE_BANDIT, 0)
+    EventListener.add(banditHelper2, EVENT_PLAYER_UNIT_DEATH) () ->
+        PlaySoundBJ(gg_snd_AssassinDeath1)
+        StopSoundBJ(gg_snd_FoodOnTheTable, false)
+    if(CINEMATIC_ENABLED)
+    CinematicModeBJ(true, GetPlayersAll())
+    force cinematicPlayers = CreateForce()
+    for player p in Utils.allPlayers
+        cinematicPlayers.addPlayer(p)
+    EventListener.add(EVENT_PLAYER_END_CINEMATIC) () ->
+        let p = GetTriggerPlayer()
+        force f = GetForceOfPlayer(p)
+        CinematicModeBJ(false, f)                                    
+        p.resetToGameCamera(0) 
+        p.setCameraPosition(COOL_TAVERN.getPos())
+
+        cinematicPlayers.removePlayer(p)
+        f.destr()
+    cinematicPlayers.forEach() ->        
+        player p = GetEnumPlayer()
+        p.disableUserControl()
+
+    panCameraForForce(cinematicPlayers, gg_cam_s1, 0)
+    getTimer().doAfter(1) () ->
+            panCameraForForce(cinematicPlayers, gg_cam_s2, 3)
+            getTimer().doAfter(4) () ->
+                panCameraForForce(cinematicPlayers, gg_cam_s3, 2)
+                getTimer().doAfter(4) () ->
+                    panCameraForForce(cinematicPlayers, gg_cam_s4, 3)
+                    getTimer().doAfter(1.5) () ->
+                        TransmissionFromUnitWithNameBJ(cinematicPlayers, banditHelper1, "Highwayman Johnson", gg_snd_HiredToHelpUsOut, "Hey... so you know those undead minions we hired to help us out? Well... they're revolting now.", bj_TIMETYPE_ADD, 0, false)
+                        SetUnitFacingToFaceUnitTimed(THE_BANDIT, banditHelper1, 1)
+                        getTimer().doAfter(6.5) () ->
+                            TransmissionFromUnitWithNameBJ(cinematicPlayers, THE_BANDIT, "Billy The Bandit", gg_snd_BanditPissed1, "What we have here is a failure to communicate...", bj_TIMETYPE_ADD, 0, false)
+                            getTimer().doAfter(3.1) () ->
+                                TransmissionFromUnitWithNameBJ(cinematicPlayers, THE_BANDIT, "Billy The Bandit", gg_snd_BanditPissed2, "I usually work alone", bj_TIMETYPE_ADD, 1, false)
+                                getTimer().doAfter(1.1) () ->
+                                    TransmissionFromUnitWithNameBJ(cinematicPlayers, banditHelper2, "Pursesnatcher Zack", gg_snd_FoodOnTheTable, "Th-th-this is why I've said all along we shouldn't have hired the undead minions because they're going to kill us. I dunno about you guys, but I got a family at home and I gotta put food on the table...", bj_TIMETYPE_ADD, 0, false)
+                                    SetUnitFacingToFaceUnitTimed(THE_BANDIT, banditHelper2, 5)
+                                    getTimer().doAfter(9) () ->
+                                        banditHelper2.setHP(2)
+                                        THE_BANDIT.issueTargetOrder("attack", banditHelper2)
+                                        SetUnitExploded(banditHelper2, true)
+                                        getTimer().doAfter(2) () ->
+                                            TransmissionFromUnitWithNameBJ(cinematicPlayers, THE_BANDIT, "Billy The Bandit", gg_snd_BanditYesAttack2, "Say your prayers!", bj_TIMETYPE_ADD, 0, false)
+                                            THE_BANDIT.setFacing(THE_BANDIT.getPos().angleTo(gg_rct_helperArea.getCenter()))                                   
+                                            getTimer().doAfter(2) () ->
+                                                cinematicPlayers.forEach() ->
+                                                    GetEnumPlayer().resetToGameCamera(0)
+                                                    GetEnumPlayer().setCameraPosition(COOL_TAVERN.getPos())
+                                                CinematicModeBJ(false, cinematicPlayers)
+
 init
     SetCameraBoundsToRect(gg_rct_PlayableArea)
     int i = 0
@@ -205,6 +284,7 @@ init
     for player p in Utils.allPlayers
         if(p.isAllyOf(Utils.goodGusy.cpu))
             Utils.friendlies.put(p, Utils.goodGusy)
+            GOOD_GUY_FORCE.addPlayer(p)
         else
             Utils.friendlies.put(p, Utils.badGusy) 
         FriendlyStuff fs = Utils.friendlies.get(p)
@@ -228,7 +308,7 @@ init
 
 
 
-    unit u = createUnit(Player(0), coolTavern, gg_rct_cooltavern.getCenter(), angle(0))
+    COOL_TAVERN = createUnit(Player(0), coolTavern, gg_rct_cooltavern.getCenter(), angle(0))
     //u = createUnit(Player(0), SOUL_WYRM, gg_rct_cooltavern.getCenter(), angle(0))
     // monsterCreated(u)
   //u = createUnit(Player(0), SYLAR, gg_rct_testzone.getCenter(), angle(0))
@@ -239,6 +319,8 @@ init
     //monsterCreated(u)
     
     weaponShop = createUnit(Player(10), WEAPON_SHOP, WEAPON_SHOP_LOC, angle(0.))
+    getTimer().doAfter(.04) ->
+        postInit()
     EventListener.add(EVENT_PLAYER_CHAT_FILTER) () ->
         if(GetEventPlayerChatString() == "-settings")
             player p = GetTriggerPlayer()
