@@ -2,3 +2,4 @@ package CustomUnitIds
 import ObjectIdGenerator
 public constant DRUID_OF_CLAW = compiletime(HERO_ID_GEN.next())
 public constant DRUID_OF_CLAW_MORPH = compiletime(HERO_ID_GEN.next())
+public constant POOR_SKELETON = compiletime(UNIT_ID_GEN.next())

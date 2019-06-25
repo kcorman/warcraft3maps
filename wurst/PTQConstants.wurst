@@ -1,14 +1,22 @@
 package PTQConstants
 import SoundUtils
 import Simulate3dSound
+import GameTimer
 import LinkedList
 import Item
 import TimerUtils
+import ClosureTimers
+import Knockback3
 public constant CROW_FORM = 'Amrf'
 public constant LOCUST = 'Aloc'
 public constant player GoodGusy = Player(10)
 public constant player BadGuy = Player(11)
-item posTestItem = createItem('odef', vec2(0,0))
+public item posTestItem = createItem('odef', vec2(0,0))
+public int WATER_LEVEL = 5 // the terrain level of deep water on the map. Gotta keep this consistent for the check to work
+
+public real timeBetweenWaves = 3.
+public real difficultyMultplier = 1.0
+public boolean totalLossMode = true
 
 public function getComputerAlly(player p) returns player
     player result = BadGuy
@@ -30,13 +38,32 @@ public function getUnitsInRangeOfLocMatchingClosure(real radius, vec2 pos, Predi
 public interface DelayedEffect
     function run()
 
+public function unit.isInWater() returns boolean
+    return GetTerrainCliffLevel(this.getX(), this.getY()) <= WATER_LEVEL
+
 public function vec2.testForPathability() returns boolean
     posTestItem.setPos(this)
     let res = posTestItem.getPos() == this
     posTestItem.setPos(vec2(0,0))
     return res
+
+// list of units that might end up in deep water
+class Swimmer
+    unit u
+    real finishWatchingTime
+    vec2 ogLoc
+    vec2 movingLoc
+LinkedList<Swimmer> BAY_WATCH = new LinkedList<Swimmer>
+public function addToBayWatch(unit u, real maxDuration)
+    Swimmer swim = new Swimmer()
+    swim.u = u
+    swim.ogLoc = u.getPos()
+    swim.movingLoc = swim.ogLoc
+    swim.finishWatchingTime = maxDuration * 2 + getElapsedGameTime()
+    BAY_WATCH.add(swim)
+
+
 public class PTQUtils
-        
     static function enableFlyingForUnit(unit u)
         u.addAbility(CROW_FORM)
         u.removeAbility(CROW_FORM)
@@ -57,3 +84,25 @@ public class PTQUtils
         end))
 
 init
+    getTimer().doPeriodically(1) (CallbackPeriodic cb) ->
+        if(not BAY_WATCH.isEmpty())
+            let currTime = getElapsedGameTime()
+            let itr = BAY_WATCH.iterator()
+            while(itr.hasNext())
+                let swim = itr.next()
+                var moving = false
+                if(swim.movingLoc.distanceTo(swim.u.getPos()) > 50)
+                    moving = true
+                    swim.movingLoc = swim.u.getPos()
+                if(currTime >= swim.finishWatchingTime)
+                    itr.remove()
+                    destroy swim
+                else if(swim.u.isInWater() and not moving)
+                    // kill heroes and weak units, make strong units jump back
+                    if(not swim.u.isType(UNIT_TYPE_HERO) and swim.u.getLevel() > 5)
+                        Knockback3.add(swim.u, swim.ogLoc, 2000)
+                        swim.finishWatchingTime = currTime + 3
+                    else
+                        swim.u.kill()
+                        itr.remove()
+                        destroy swim

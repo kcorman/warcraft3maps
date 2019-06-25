@@ -1,0 +1,84 @@
+package WolfNightmare
+import ClosureEvents
+import PTQConstants
+import ClosureTimers
+import TimerUtils
+import CustomUnits
+import CustomAbilities
+
+let wolfStart = gg_snd_SpiritWolfBirth1
+let nmStart = gg_snd_FreakyForest4
+class WolfNightmare
+    vec2 ogLoc
+    unit victim
+    unit wolf
+    unit caster
+    timer cameraTimer
+    CallbackPeriodic cb
+    construct(unit caster, unit victim)
+        this.victim = victim
+        this.caster = caster
+        ogLoc = victim.getPos()
+        victim.setPos(gg_rct_wolfattack.getCenter())
+        wolf = createUnit(BadGuy, BIG_BAD_WOLF, gg_rct_wolfattack.getCenter(), angle(0))
+        wolf.hide()
+        wolf.pause()
+        wolf.disableAbility(ABILITY_WOLF_NIGHTMARE, true, true)
+        wolf.setScale(2.5)
+        wolf.setMoveSpeed(370)
+        wolf.setName("Nightmare Wolf")
+        wolf.setVertexColor(colorA(50, 50, 50, 255))
+        wolf.setBaseDamage(9000, 0)
+        if(victim.getOwner() == GetLocalPlayer())
+            nmStart.play()
+        startCameraFollow()
+        printTimedToPlayer("The wolf is coming... Run!", 7, victim.getOwner())
+        getTimer().doAfter(8) () ->
+            wolf.unpause()
+            wolf.show()
+            wolf.issueTargetOrder("attack", victim)
+            if(victim.getOwner() == GetLocalPlayer())
+                wolfStart.play()
+
+    function startCameraFollow()
+        
+        victim.getOwner().setCameraTargetControllerNoZ(victim, vec2(0,0), true)
+        cb = (CallbackPeriodic cb) ->
+            victim.getOwner().setCameraField(CAMERA_FIELD_ANGLE_OF_ATTACK, 345, 0)
+            victim.getOwner().setCameraField(CAMERA_FIELD_ROTATION, victim.getFacingAngle().degrees(), 0)
+            victim.getOwner().setCameraField(CAMERA_FIELD_ZOFFSET, 200, 0)
+            victim.getOwner().setCameraField(CAMERA_FIELD_TARGET_DISTANCE, 500, 0)
+            if(not victim.isAliveTrick() or not wolf.isAliveTrick() or not victim.getPos().isInRect(gg_rct_wolfdomain) or not wolf.getPos().isInRect(gg_rct_wolfdomain))
+                if(victim.isAliveTrick())
+                    printTimedToPlayer("You escaped the wolf... for now", 5, victim.getOwner())
+                done()
+        cameraTimer = getTimer()..doPeriodically(.04, cb) 
+    function done()
+        cameraTimer.release()
+        caster.resetAbilityCooldown(ABILITY_WOLF_NIGHTMARE)
+        victim.setPos(ogLoc)
+        victim.getOwner().resetToGameCamera(0)
+        wolf.remove()
+        victim.getOwner().setCameraQuickPosition(ogLoc)
+        destroy this
+init
+    // Wolf Nightmare
+    EventListener.onCast(ABILITY_WOLF_NIGHTMARE) (unit caster) ->
+        let target = GetSpellTargetUnit()
+        if(target.isType(UNIT_TYPE_HERO))
+            new WolfNightmare(caster, target)
+
+
+    /*
+    let ef = AddWeatherEffect(gg_rct_PlayableArea, WeatherEffects.lordaeronRainHeavy)
+    ef.enable()
+    getTimer().doAfter(4) () ->
+        CinematicFilterGenericBJ(20, BLEND_MODE_BLEND, "ReplaceableTextures\\CameraMasks\\HazeAndFogFilter_Mask.blp", 50, 50, 50, 50, 50, 50, 50, 50)
+
+        u.getOwner().setCameraTargetControllerNoZ(u, vec2(0,0), true)
+        getTimer().doPeriodically(.04) (CallbackPeriodic cb) ->
+            u.getOwner().setCameraField(CAMERA_FIELD_ANGLE_OF_ATTACK, 345, 0)
+            u.getOwner().setCameraField(CAMERA_FIELD_ROTATION, u.getFacingAngle().degrees(), 0)
+            u.getOwner().setCameraField(CAMERA_FIELD_ZOFFSET, 200, 0)
+            u.getOwner().setCameraField(CAMERA_FIELD_TARGET_DISTANCE, 500, 0)
+            */

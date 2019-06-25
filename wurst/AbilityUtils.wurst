@@ -10,6 +10,7 @@ public function unit.isChannelingAbility(int abil ) returns boolean
         return channeledAbilities.get(this) == abil
     return false
 
+
 init
     EventListener.add(EVENT_PLAYER_UNIT_SPELL_CHANNEL) () ->
         // print("Started channeling abil " + GetAbilityName(GetSpellAbilityId()))
@@ -17,3 +18,4 @@ init
     EventListener.add(EVENT_PLAYER_UNIT_SPELL_ENDCAST) () ->
         // print("Stopped channeling abil " + GetAbilityName(GetSpellAbilityId()))
         channeledAbilities.remove(GetSpellAbilityUnit())
+    

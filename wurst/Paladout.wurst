@@ -37,25 +37,23 @@ init
         let target = GetSpellTargetUnit()
         let lvl = caster.getAbilityLevel(ABILITY_FACE_SMASH)
         let dmg = caster.getStr(true) * 2 + lvl * 75.0
-        print ("Dmg = " + dmg.toString())
         caster.damageTarget(target, dmg, true, false, ATTACK_TYPE_HERO)
         getTimer().doAfter(.2) () ->
-            Knockback3.add(target, 2000, caster.getPos().angleTo(target.getPos()), angle(PI/6))
+            Knockback3.add(target, 1200, caster.getPos().angleTo(target.getPos()), angle(PI/6))
+            addToBayWatch(target, 6)
             flashEffect(Abilities.holyBoltMissile, target, "chest")
     EventListener.onCast(ABILITY_WWUD) (unit caster) ->
         let target = GetSpellTargetUnit()
         let lvl = caster.getAbilityLevel(ABILITY_WWUD)
+        let duration = 3 + lvl * 2
         let ef = addEffect(Abilities.voodooAuraTarget, target, "chest")
         let listener = EventListener.add(EVENT_PLAYER_UNIT_DAMAGED) () ->
             let src = GetEventDamageSource()
             if(src == caster)
                 let dmg = EventData.getDamage() * (.5 + .5 * lvl)
-                print("Event dmg = " + dmg.toString())
                 target.setHP(target.getHP() + dmg)
 
-        print("Started listener for damage")
-        getTimer().doAfter(5) () ->
-            print("Destroying listener for damage")
+        getTimer().doAfter(duration.toReal()) () ->
             unregisterEventsForUnit(caster)
             ef.destr()
             destroy listener
@@ -74,15 +72,15 @@ init
                 break
         if(pal != null)
             let lvl = pal.getAbilityLevel(ABILITY_PALADOUT_SPIDY_AURA)
-            if(GetRandomInt(0, 9) < lvl)
+            if(GetRandomReal(0, 9) < .5 + (lvl * .05))
                 new DummyCaster()
                     ..owner(victim.getOwner())
-                    ..origin(victim.getPos())
+                    ..origin(attacker.getPos().polarOffset(angle(GetRandomReal(0, PI2)), 300))
                     ..castTarget(ABILITY_SPIDY_WEB_EFFECT, 1, OrderIds.ensnare, attacker)
                 if(victim.getOwner().getController() == MAP_CONTROL_COMPUTER and victim.getHP() < victim.getMaxHP() / 2)
                     victim.issuePointOrder("move", attacker.getPos().polarOffset(attacker.getFacingAngle(), 300))
     // TODO: Switching auras is broken
-    EventListener.onCast(ABILITY_PALADOUT_AURA) (unit caster) ->
+    /*EventListener.onCast(ABILITY_PALADOUT_AURA) (unit caster) ->
         let lvl = caster.getAbilityLevel(ABILITY_PALADOUT_AURA)
         caster.disableAbility(auraProgression.get(curIndex), true, true)
         curIndex = curIndex + 1
@@ -98,4 +96,4 @@ init
                 let abil = auraProgression.get(i)
                 GetLearningUnit().addAbility(abil)
                 if i != 0
-                    GetLearningUnit().disableAbility(abil, true, true)
+                    GetLearningUnit().disableAbility(abil, true, true)*/

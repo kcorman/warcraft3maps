@@ -5,11 +5,14 @@ import MonsterAbilities
 import ClosureEvents
 import GameInit
 import ClosureTimers
+import CustomAbilities
 import PTQConstants
 import UnitTrainers
 import Abilities
 import Units
 import CustomUnitIds
+import WeatherEffects
+import Weather
 import CustomUnits
 constant int NUM_WAVES = 13
 constant int MAX_GOOD_UNITS = 5
@@ -63,26 +66,36 @@ class Wave
     construct(LinkedList<UnitAndAmount> units)
         this.units = units
     
+
     function spawnMonster(UnitAndAmount amt)
-        int actualAmt = (amt.relativeAmount * difficultyMultplier).toInt()
+        let diffAdjust = (1 + (difficultyMultplier - 1) * .5) // difficulty 1 means 1x units hp, difficulty 2 means 1.5x units, etc.
+        int actualAmt = (amt.relativeAmount * diffAdjust).toInt()
         for i = 1 to actualAmt
-            unit u = createUnit(BadGuy, amt.typ, BAD_GUY_03.getCenter(), angle(0))
+            unit u = prepareUnit(createUnit(BadGuy, amt.typ, BAD_GUY_03.getCenter(), angle(0)))
+            
             flashEffect(Abilities.darkSummonTarget, u, "origin")
             monsterCreated(u)
             if (not amt.boss)
-                u = createUnit(BadGuy, amt.typ, BAD_GUY_01.getCenter(), angle(0))
+                u = prepareUnit(createUnit(BadGuy, amt.typ, BAD_GUY_01.getCenter(), angle(0)))
                 flashEffect(Abilities.darkSummonTarget, u, "origin")
                 monsterCreated(u)
-                u = createUnit(BadGuy, amt.typ, BAD_GUY_02.getCenter(), angle(0))
+                u = prepareUnit(createUnit(BadGuy, amt.typ, BAD_GUY_02.getCenter(), angle(0)))
                 flashEffect(Abilities.darkSummonTarget, u, "origin")
                 monsterCreated(u)
+    // Most unit preparation should go in MonsterAbilities#monsterCreated
+    // but there are some things we only want to have apply to the initial set of created
+    // monsters and not summoned units, such as giving loot
+    function prepareUnit(unit u) returns unit
+        u.addAbility(ABILITY_GIVES_LOOT)
+        return u
+
     function spawn()
         currentWave = this
         addMonsterToWave = (unit u) ->
             actualUnits.add(u)
         currentWave.failed = false
         actualUnits = new LinkedList<unit>
-        LeaderboardSetLabel(currentWaveBoard, "Wave - " + (currentWaveIndex + 1).toString())
+        LeaderboardSetLabel(currentWaveBoard, "Wave - " + (currentWaveIndex + 1).toString() + " / " + waves.size().toString())
         for UnitAndAmount amt in units
             spawnMonster(amt)
         updateBoardRemainingEnemies()
@@ -153,7 +166,7 @@ function spawnGoodGusy()
 
 
 function startWave()
-    if(waves.isEmpty())
+    if(currentWaveIndex >= waves.size())
         Utils.win()
 
     spawnGoodGusy()
@@ -258,22 +271,6 @@ init
         new UnitAndAmount(MEAT_WAGON_WAGON, 3) // boss, kinda
     )))
     waves.add(new Wave(toList(
-        new UnitAndAmount(GHOUL, 2),
-        new UnitAndAmount(BIG_GOOL, 3, false),
-        new UnitAndAmount(ZOMBIEMANCER, 4),
-        new UnitAndAmount(GHOSTMANCER, 2),
-        new UnitAndAmount(OBSIDIAN_STATUTE, 2),
-        new UnitAndAmount(GHOST_GOLEM, 1)
-    )))
-    waves.add(new Wave(toList(
-        new UnitAndAmount(GHOST_GOLEM, 3),
-        new UnitAndAmount(LIFE_STEALING_GHOST, 3)
-    )))
-
-    waves.add(new Wave(toList(
-        new UnitAndAmount(GIANT_GHOUL, 2, false) // boss wave, kinda
-    )))
-    waves.add(new Wave(toList(
         new UnitAndAmount(ZOMBIE, 5),
         new UnitAndAmount(STARCHES, 1, true) // boss
     )))
@@ -285,9 +282,11 @@ init
         new UnitAndAmount(DETH_NIGHT, 2),
         new UnitAndAmount(CRYPT_FREND, 8)
     )))
+    // too ez
     waves.add(new Wave(toList(
         new UnitAndAmount(DIRE_MAMMOTH, 1)
     )))
+    // also too ez
     waves.add(new Wave(toList(
         new UnitAndAmount(COIL_SNIPER, 1)
     )))
@@ -296,15 +295,20 @@ init
         new UnitAndAmount(CRYPT_FREND, 4),
         new UnitAndAmount(COIL_SNIPER, 1)
     )))
+    // Maybe coil hydras should always make stronger heads, which would help prevent AOE from
+    // going as nuts as fast too
     waves.add(new Wave(toList(
         new UnitAndAmount(COIL_HYDRA, 1) // boss
     )))
+    // seemed like a good difficulty, maybe a little ez
     waves.add(new Wave(toList(
         new UnitAndAmount(UNSTOPPABLE_TANK, 1) // boss
     )))
     waves.add(new Wave(toList(
         new UnitAndAmount(DIRE_MAMMOTH, 2)
     )))
+    // murloc waves too ez, die too fast and dont do enough damage
+    // queen should replace murlocs really fast
     waves.add(new Wave(toList(
         new UnitAndAmount(MURLOC_DRONE, 8)
     )))
@@ -317,18 +321,26 @@ init
         new UnitAndAmount(MURLOC_DRONE, 8),
         new UnitAndAmount(MURLOC_QUEEN, 1)
     )))
+    // this guy is still insane, might want to make him at least not kill the
+    // bandit forts
     waves.add(new Wave(toList(
         new UnitAndAmount(MURLOC_GENERAL, 1, true)
     )))
+    // seemed like a good difficulty, maybe need a little more hp
     waves.add(new Wave(toList(
         new UnitAndAmount(FIRE_ELEMENTAL, 3)
     )))
+    // too easy and people get stuck flying
     waves.add(new Wave(toList(
         new UnitAndAmount(ICE_ELEMENTAL, 4)
     )))
+    // good fight but needs more hp
     waves.add(new Wave(toList(
         new UnitAndAmount(AERO_BEAR, 1)
     )))
+    // way too easy and poor skeletons dont properly look for gold.
+    // They should have a lot more hp initially and make a b-line for gold when it drops
+    // also maybe players should drop 2 or 3 250 golds when shot
     waves.add(new Wave(toList(
         new UnitAndAmount(SKELETON_ROBIN_HOOD, 1)
     )))
@@ -336,6 +348,7 @@ init
         new UnitAndAmount(SKELETON_ROBIN_HOOD, 1),
         new UnitAndAmount(POOR_SKELETON, 3)
     )))
+    // couldnt beat this wave online, was kinda frustrating because hydras go so nuts
     waves.add(new Wave(toList(
         new UnitAndAmount(DETH_NIGHT, 2),
         new UnitAndAmount(CRYPT_FREND, 8),
@@ -343,17 +356,13 @@ init
         new UnitAndAmount(COIL_HYDRA, 1) // boss
     )))
     waves.add(new Wave(toList(
-        new UnitAndAmount(GIANT_GHOUL, 5, false) // boss wave, kinda
-    )))
-    waves.add(new Wave(toList(
-        new UnitAndAmount(COIL_HYDRA, 1), // boss
-        new UnitAndAmount(UNSTOPPABLE_TANK, 2)
-    )))
-    waves.add(new Wave(toList(
         new UnitAndAmount(SKELETON_ROBIN_HOOD, 2),
         new UnitAndAmount(LIFE_STEALING_GHOST, 2),
         new UnitAndAmount(AERO_BEAR, 1),
         new UnitAndAmount(POOR_SKELETON, 3)
+    )))
+    waves.add(new Wave(toList(
+        new UnitAndAmount(BIG_BAD_WOLF, 1, true)
     )))
     trigger trig = CreateTrigger()
     trig.registerPlayerChatEvent(Player(0), "next", false)
@@ -373,9 +382,9 @@ init
     trig.addAction(() -> begin
         force f = GetPlayersAllies(GetDyingUnit().getOwner())
         
-        if(currentWaveIndex < 3)
+        if(currentWaveIndex < 3 or totalLossMode)
             f.forEach(() -> begin
-                CustomDefeatBJ(GetEnumPlayer(), "Fin")
+                CustomDefeatBJ(GetEnumPlayer(), "Billy the Bandit has died. Better luck next time.")
             end)
         else
             currentWave.failed = true
@@ -397,6 +406,7 @@ init
         LeaderboardSetSizeByItemCount(currentWaveBoard, 1)
     unit u = createUnit(Player(0), PALADOUT, gg_rct_helperArea.getCenter(), angle(0))
     u.setLevel(12, true)
+    
 function updateBoardRemainingEnemies()
     if(currentWaveBoard != null and currentWave != null)
         LeaderboardSetItemValue(currentWaveBoard, LeaderboardGetPlayerIndex(currentWaveBoard, BadGuy), currentWave.actualUnits.size())

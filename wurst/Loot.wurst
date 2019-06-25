@@ -4,6 +4,7 @@ import PTQConstants
 import GameInit
 import LinkedList
 import TimerUtils
+import CustomAbilities
 import GameTimer
 import ClosureTimers
 constant real TEXT_TAG_TICK_TIME = .25
@@ -34,20 +35,21 @@ init
                 itr.remove()
     
     EventListener.add(EVENT_PLAYER_UNIT_DEATH) () ->
-        if(GetRandomReal(0, 1.) > .96)
-            createItem(ITEM_LUMBER, GetDyingUnit().getPos())
-        else if (GetRandomReal(0, 1) > .96)
-            createItem(ITEM_GOLD, GetDyingUnit().getPos())
-
         let dyingUnit = GetDyingUnit()
-        if(dyingUnit.getOwner() == BadGuy)
-            let totalGold = dyingUnit.getLevel() * 30
-            let perPersonGold = (totalGold / Utils.allPlayers.size().toReal()).toInt()
-            for player p in Utils.allPlayers
-                p.addGold(perPersonGold)
-                createTTEx(dyingUnit.getPos3Real(), vec2(0, .03), "+" + perPersonGold.toString(), 10, 2, colorA(255, 215, 0,0))
+        if(dyingUnit.hasAbility(ABILITY_GIVES_LOOT))
+            if(GetRandomReal(0, 1.) > .96)
+                createItem(ITEM_LUMBER, GetDyingUnit().getPos())
+            else if (GetRandomReal(0, 1) > .96)
+                createItem(ITEM_GOLD, GetDyingUnit().getPos())
 
-                //setTextTagTime(t, 2)
+            if(dyingUnit.getOwner() == BadGuy)
+                let totalGold = dyingUnit.getLevel() * 50
+                let perPersonGold = (totalGold / Utils.allPlayers.size().toReal()).toInt()
+                for player p in Utils.allPlayers
+                    p.addGold(perPersonGold)
+                    createTTEx(dyingUnit.getPos3Real(), vec2(0, .03), "+" + perPersonGold.toString(), 10, 2, colorA(255, 215, 0,0))
+
+                    //setTextTagTime(t, 2)
 
 
  

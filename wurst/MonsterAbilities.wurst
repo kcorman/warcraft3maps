@@ -19,6 +19,7 @@ import SoundUtils
 import Knockback3
 import LinkedList
 import HashList
+import CustomUnitIds
 import HashMap
 import PTQConstants
 import CustomUnits
@@ -44,7 +45,16 @@ class CoilTracker
 
 class RealWrapper
     real val = 0
+
+function adjustUnitStats(unit u) returns unit
+    let diffAdjust = (1 + (difficultyMultplier - 1) * .2) // difficulty 1 means 100% hp, difficulty 2 means 120% hp, etc.
+    u.setMaxHP((u.getMaxHP() * diffAdjust).toInt())
+    u.setHP(u.getMaxHP())
+    u.setBaseDamage((u.getBaseDamage(0) * diffAdjust).toInt(), 0)
+    u.setBaseDamage((u.getBaseDamage(1) * diffAdjust).toInt(), 1)
+    return u
 public function monsterCreated(unit monster)
+    adjustUnitStats(monster)
     // This adds the monster to the current wave. Kinda a weird tightly coupled thing
     addMonsterToWave.am(monster)
     switch(monster.getTypeId())
@@ -192,6 +202,7 @@ function unit.setOnFire(boolean val)
     else
         unitsOnFire.remove(this)
 
+
 function setOnFire(unit target)
     if(target.isOnFire())
         return
@@ -231,6 +242,7 @@ init
         PTQUtils.enableFlyingForUnit(caster)
         let distance = caster.getPos().distanceTo(target.getPos())
         Knockback3.add(caster, distance * 2, caster.getPos().angleTo(target.getPos()), angle(PI / 4))
+        addToBayWatch(caster, 10)
         getTimer().doPeriodicallyCounted(.04, 500) (cb) ->
             if(caster.getPos().distanceTo(target.getPos()) < 100)
                 Knockback3.setVel(caster, 0, angle(0), angle(0))
@@ -322,6 +334,7 @@ init
             let target = g.next()
             SetUnitFacingToFaceUnitTimed(caster, target, 0)
             let distance = caster.getPos().distanceTo(target.getPos())
+            addToBayWatch(thrown, 6)
             Knockback3.add(thrown, distance * 2, caster.getPos().angleTo(target.getPos()), angle(PI / 4))
             getTimer().doPeriodicallyCounted(.10, 100) (CallbackCounted cb) ->
                 // check if there are any enemies nearby
@@ -336,7 +349,7 @@ init
 
         g.destr()
     EventListener.onCast(murlocSpawn) (unit caster) ->
-        for i = 0 to 2
+        for i = 0 to 5
             unit u = createUnit(caster.getOwner(), MURLOC_DRONE, caster.getPos().polarOffset(caster.getFacingAngle(), 50), caster.getFacingAngle())
             monsterCreated(u)
     EventListener.add(EVENT_PLAYER_UNIT_DEATH) () ->
@@ -369,6 +382,30 @@ init
                 caster.setFacing(caster.getFacingAngle() + angle(PI/2))
                 caster.resetAbilityCooldown(murlocTidalWave)
                 caster.issueImmediateOrderById(OrderIds.waterelemental)
+
+    // Wolf Blow
+    EventListener.onCast(ABILITY_WOLF_BLOW) (unit caster) ->
+        caster.pauseEx()
+        caster.setAnimation("Attack Slam")
+        let size = 2.0
+        let count = 15
+        getTimer().doPeriodicallyCounted(.10, count) (CallbackCounted cb) ->
+            if(cb.isLast() and caster.isAlive())
+                group tg = getUnitsInRangeOfLocMatchingClosure(1000, caster.getPos()) (unit u) ->
+                    let ang = caster.getPos().angleTo(u.getPos())
+                    let diff = (caster.getFacingAngle() - ang).radians().abs()
+                    return u.isEnemyOf(caster.getOwner()) and not u.isInvulnerable() and diff < (3 * PI) / 4 
+                for unit u in tg
+                    addToBayWatch(u, 6)
+                    Knockback3.add(u, 3000, caster.getFacingAngle(), angle(PI / 2.5))
+                tg.destr()
+            else
+                caster.setScale(size + (count - cb.getCount()) * .06)
+            if(cb.isLast())
+                caster.setScale(size)
+                caster.unpauseEx()
+
+
     // Set fire
     EventListener.onCast(ABILITY_SET_FIRE) (unit caster) ->
         let target = GetSpellTargetUnit()
@@ -377,10 +414,8 @@ init
     // Neck Freeze
     EventListener.onCast(ABILITY_NECK_FREEZE) (unit caster) ->
         let target = GetSpellTargetUnit()
-        let spd = target.getMoveSpeed()
         PTQUtils.enableFlyingForUnit(target)
         target.pause()
-        target.setMoveSpeed(1)
         SetUnitLookAt(target, "bone_head", caster, 0, 0, 0)
         let time = 3.
         target.setFlyHeight(200, 200)
@@ -390,11 +425,10 @@ init
         boneCrack.playOnPoint(target.getPos3Real())
         getTimer().doPeriodicallyTimed(tick, time) (CallbackCounted cb) ->
             if(cb.isLast())
-                target.setMoveSpeed(spd)
+                target.setFlyHeight(0, 0)
                 ResetUnitLookAt(target)
-                caster.damageTarget(target, 500)
+                caster.damageTarget(target, 800)
                 target.unpause()
-                caster.setFlyHeight(0, 0)
             else
                 target.setFacing(og + angle(radPerTick * cb.getCount()))
     
@@ -449,15 +483,17 @@ init
                         caster.setMoveSpeed(spd)
                         caster.issuePointOrder("attack", caster.getPos())
                         cb.stop()
-                        Knockback3.add(target, 1400, caster.getFacingAngle(), angle(PI/4))
-                        caster.damageTarget(target, 150 + dist / 3)
+                        Knockback3.add(target, 1600, caster.getFacingAngle(), angle(PI/4))
+                        addToBayWatch(target, 10)
+                        caster.damageTarget(target, 150 + dist / 2)
                     else if(cb.isLast())
                         caster.setMoveSpeed(spd)
                         caster.issuePointOrder("attack", caster.getPos())
             else
                 SOUND_MAMMOTH_CHARGE_HIT.playOnPoint(target.getPos3Real())
-                Knockback3.add(target, 500, caster.getFacingAngle(), angle(PI/3))
-                caster.damageTarget(target, 250)
+                Knockback3.add(target, 800, caster.getFacingAngle(), angle(PI/3))
+                addToBayWatch(target, 10)
+                caster.damageTarget(target, 400)
     // mammoth turn into skeleton
     EventListener.add(EVENT_PLAYER_UNIT_DEATH) () ->
         let ded = GetDyingUnit()
@@ -484,8 +520,11 @@ init
                     if(attacked.getOwner().getGold() >= gold)
                         attacked.getOwner().addGold(-gold)
                     createTTEx(attacked.getPos3Real(), vec2(0, -.03), "-" + gold.toString(), 10, 2, colorA(255, 215, 0,0))
-                    if(attacked.getOwner().getGold() > 0)
-                        createItem('gold', attacked.getPos().polarOffset(attacked.getPos().angleTo(attacker.getPos()), 100))
+                    for i = 0 to GetRandomInt(0, 4)
+                        if(attacked.getOwner().getGold() > 0)
+                            createItem('gold', attacked.getPos().polarOffset(attacked.getPos().angleTo(attacker.getPos()), (50 + i * 50).toReal()))
+
+            
             
 
     

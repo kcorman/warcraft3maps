@@ -36,8 +36,6 @@ public constant boolean CINEMATIC_ENABLED = true
 
 unit weaponShop
 
-public real timeBetweenWaves = 3.
-public real difficultyMultplier = 1.0
 public interface Runnable
     function run()
 
@@ -119,7 +117,7 @@ public class Utils
         playerHeroes.add(hero)
 
     static function win()
-        force f = GetPlayersAllies(GetDyingUnit().getOwner())
+        force f = GetPlayersAllies(GoodGusy)
             
         f.forEach(() -> begin
             CustomVictoryBJ(GetEnumPlayer(), true, true)
@@ -267,7 +265,7 @@ function doIntiialCinematic()
                                                 CinematicModeBJ(false, cinematicPlayers)
 
 init
-    SetCameraBoundsToRect(gg_rct_PlayableArea)
+    //SetCameraBoundsToRect(gg_rct_PlayableArea)
     int i = 0
     while(i < 12)
         if(players[i].getSlotState() == PLAYER_SLOT_STATE_PLAYING and players[i].getController() == MAP_CONTROL_USER)
@@ -324,7 +322,7 @@ init
     EventListener.add(EVENT_PLAYER_CHAT_FILTER) () ->
         if(GetEventPlayerChatString() == "-settings")
             player p = GetTriggerPlayer()
-            DialogBox difficulty = createDialogueForSetting(p, "Difficulty", new LinkedList<Option<int>>..add(createOption(1, "DU"), createOption(2, "DU")), null)(val) ->
+            DialogBox difficulty = createDialogueForSetting(p, "Difficulty", new LinkedList<Option<int>>..add(createOption(1, "DU"), createOption(2, "DU"), createOption(3, "DU"), createOption(4, "DU")), null)(val) ->
                 difficultyMultplier = val.value.toReal()
             DialogBox timeSetting = createDialogueForSetting(p, "Time Between Waves", new LinkedList<Option<int>>..add(
             createOption(1, "Seconds"), 

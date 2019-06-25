@@ -124,6 +124,8 @@ init
         for unit u in affected
             if(IsUnitType(u, UNIT_TYPE_STRUCTURE) or u.getTypeId() == UNSTOPPABLE_TANK)
                 affected.removeUnit(u)
+            else
+                addToBayWatch(u, duration + 2)
             if(u == caster)
                 casterIsAffected = true
         let cursor = CreateUnit(caster.getOwner(), DUMMY_CURSOR, target.x, target.y, 0)

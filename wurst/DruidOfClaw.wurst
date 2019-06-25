@@ -31,7 +31,7 @@ let SOUND_HEFFALUMP = new SoundDefinition("war3mapImported\\Heffalump.mp3", fals
 init
     EventListener.add(EVENT_PLAYER_HERO_SKILL) () ->
         if(EventData.getAbilityIdLearned() == ABILITY_BEAR_REGEN and GetLearningUnit().getTypeId() == DRUID_OF_CLAW_MORPH)
-            GetLearningUnit().disableAbility(ABILITY_BEAR_REGEN, true, false)
+            //GetLearningUnit().disableAbility(ABILITY_BEAR_REGEN, true, false)
 
     EventListener.onCast(ABILITY_HEFFALUMPS) (unit caster) ->
         let lvl = caster.getAbilityLevel(ABILITY_HEFFALUMPS)
@@ -56,7 +56,7 @@ init
 
     EventListener.onCast(ABILITY_DRUID_MORPH) (unit caster) ->
         getTimer().doAfter(1.5) () ->
-            caster.disableAbility(ABILITY_BEAR_REGEN, caster.getTypeId() == DRUID_OF_CLAW_MORPH, false)
+            //caster.disableAbility(ABILITY_BEAR_REGEN, caster.getTypeId() == DRUID_OF_CLAW_MORPH, false)
     EventListener.onCast(ABILITY_BEAR_THUNDERCLAP) (unit caster) ->
         let lvl = caster.getAbilityLevel(ABILITY_BEAR_THUNDERCLAP)
         let isBear = caster.getTypeId() == DRUID_OF_CLAW_MORPH
@@ -64,6 +64,7 @@ init
         let targetUnits = getUnitsInRangeOfLocMatchingClosure(300, caster.getPos()) (unit u) ->
             return u.isEnemyOf(caster.getOwner()) and not u.isInvulnerable() and u.isAlive()
         for unit u in targetUnits 
+            addToBayWatch(u, 6)
             if(isBear)
                 Knockback3.add(u, caster.getPos(), 1500)
             else
