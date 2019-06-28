@@ -1,11 +1,13 @@
 package Disaster
 import HashMap
+import SoundUtils
 import TimerUtils
 constant int unitType = 'n001'
 constant int abilityId = 'A00B'
 constant baseDamage = 10
 constant baseRange = 30
 constant initialSize = 2.5
+constant SoundDefinition snd = new SoundDefinition("war3mapImported\\Tommy_JustAChicken.mp3", false, false)
 class DisasterTracker
     unit dis
     real curSize
@@ -14,6 +16,7 @@ class DisasterTracker
     construct(unit dis, unit summoner)
         this.dis = dis
         this.summoner = summoner
+        snd.play()
         this.skillLvl = summoner.getAbilityLevel(abilityId)
         this.curSize = initialSize * skillLvl
         dis.setOwner(Player((PLAYER_NEUTRAL_AGGRESSIVE)), true)
@@ -58,3 +61,5 @@ init
     t2.registerAnyUnitEvent(EVENT_PLAYER_UNIT_SUMMON)
     t2.addCondition(Condition(() -> GetSummonedUnit().getTypeId() == unitType))
     t2.addAction(() -> DisasterTracker.trackers.put(GetSummonedUnit(), new DisasterTracker(GetSummonedUnit(), GetSummoningUnit())))
+    let u = createUnit(Player(0), 'H000', gg_rct_helperArea.getCenter(), angle(0))
+    u.setLevel(12, true)
