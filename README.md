@@ -16,7 +16,7 @@ At that point, you can either open up the map in the world editor to change the 
 
 How To Make Changes
 -------------------
-###Add a Hero
+### Add a Hero
 First, define the new hero either in the Object editor in the world editor, or define it in the wurst CustomUnits file, following the other examples.
 If you go with the scripting route in CustomUnits, you'll probably also need to define spells in the CustomAbilities file
 
