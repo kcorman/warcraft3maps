@@ -26,15 +26,15 @@ Once your hero is ready, you can add them as a purchasable unit to the tavern, w
 
 If you wish to test your hero, I suggest just spawning one for Player(0) in the init() section of any of the files. You can then also set the level so you can test out their progression, etc
 
-###Add a bad guy or wave
+### Add a bad guy or wave
 Define the unit in either the object editor or the CustomUnits file like you do for a hero. Define any abilities in the CustomAbilities file and add them to the unit. If there are scripted abilities, I generally put all of their scripts into the MonsterAbilities.wurst package. 
 Finally, Look in the Waves.wurst package. You'll see the definition for all the waves there. Either insert a new wave somewhere with your bad guy, or add your guy to an existing wave
 
-###Add a Unit Trainer
+### Add a Unit Trainer
 Adding a unit trainer is much like adding a bad guy, except instead of adding it to a wave, you make it purchasable at one of the shops defined in CustomUnits.wurst
 I suggest looking at the definition of an existing merc trainer in the CustomUnits file to get an idea of the fields that should be set (such as stock start delay, etc).
 
-###Add a Tower
+### Add a Tower
 I haven't gotten around to making a builder defined in CustomUnits, so currently all towers are defined in the Object editor. You can simply copy one of the existing ones, make the changes you want, and add it to the stuff built by the builder. Or you can define a new builder.
 
 
