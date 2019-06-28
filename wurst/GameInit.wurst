@@ -5,6 +5,7 @@ import TimerUtils
 import ClosureTimers
 import Effect
 import Assets
+import Quest
 import SoundUtils
 import CustomUnits
 import ClosureEvents
@@ -202,7 +203,14 @@ function panCameraForForce(force f, camerasetup cam, real duration)
             p.cameraSetupApply(true, cam, duration)
 // this function gets run once a few milliseconds after the game starts
 function postInit()
-    createTTEx(gg_rct_unittrainers.getCenter().withTerrainZ(150) + vec3(0,50,0), "Purchase Builders Here", 10, colorA(255,50,50,255))
+    quest q = CreateQuest()
+    q.setTitle("Credits")
+    q.setIcon(Icons.bTNScepterOfMastery)
+    q.setRequired(false)
+    q.setDescription("Created By: WillemTheFoe\nBuilt with WurstScript (https://wurstlang.org/)\nAll Custom Models came from Hiveworkshop\nDemoness: nightelfbuilder\nShadow Dragon: Thrikodius\nSkeleton Mammoth: kako2742\nDevil Tower (Succorbenoth): Kuhneghetz\nVoid Rain (Soul Wyrm Spell): Mythic\nRodent Artilliry (Warplock Jezzail): Gluma\nElephant: GolluM_KoMe\nRussian Officer: HerrDave\nKeeper of The Sylar: WillemTheFoe\nThe Senate: WillemTheFoe\nRabbit and Tigger: WillemTheFoe\nTommy Wisearthas: WillemTheFoe\n")
+    texttag t = createTTEx(gg_rct_unittrainers.getCenter().withTerrainZ(150) + vec3(0,50,0), "Purchase Builders Here", 10, colorA(255,50,50,255))
+    getTimer().doAfter(300) () ->
+        t.destr()
     if(CINEMATIC_ENABLED)
         doIntiialCinematic()
 function doIntiialCinematic()
@@ -309,7 +317,7 @@ init
     COOL_TAVERN = createUnit(Player(0), coolTavern, gg_rct_cooltavern.getCenter(), angle(0))
     //u = createUnit(Player(0), SOUL_WYRM, gg_rct_cooltavern.getCenter(), angle(0))
     // monsterCreated(u)
-  //u = createUnit(Player(0), SYLAR, gg_rct_testzone.getCenter(), angle(0))
+    //u = createUnit(Player(0), SYLAR, gg_rct_testzone.getCenter(), angle(0))
     //u.setLevel(12, true)
     //u.setLevel(12, true)
     //unit u = createUnit(Player(0), SYLAR, gg_rct_helperArea.getCenter(), angle(0))
@@ -319,6 +327,10 @@ init
     weaponShop = createUnit(Player(10), WEAPON_SHOP, WEAPON_SHOP_LOC, angle(0.))
     getTimer().doAfter(.04) ->
         postInit()
+    EventListener.add(EVENT_PLAYER_UNIT_DEATH) () ->
+        let ded = GetDyingUnit()
+        if(ded.getOwner().isAllyOf(GoodGusy) and ded.isType(UNIT_TYPE_HERO))
+            printTimedToPlayer("Your hero has died and will be ressurected if your team finishes this wave.", 6, ded.getOwner())
     EventListener.add(EVENT_PLAYER_CHAT_FILTER) () ->
         if(GetEventPlayerChatString() == "-settings")
             player p = GetTriggerPlayer()
@@ -352,3 +364,4 @@ init
                 debug.display(p, true)
             menu.display(p, true)
 
+    

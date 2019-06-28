@@ -176,7 +176,6 @@ init
         let extraSouls = (lvl - 1) * 10
         incrementSoulCount(caster, -cost)
         getTimer().doAfter(2) () ->
-            print ("Creating soul wyrm")
             unit wyrm = createUnit(caster.getOwner(), SOUL_WYRM, target, caster.getFacingAngle())
             wyrm.setAbilityLevel(CONSUME_SOUL, lvl)
             for i = 0 to 5

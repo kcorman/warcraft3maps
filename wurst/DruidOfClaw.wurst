@@ -81,7 +81,7 @@ init
             // bear target is always 175 away
             caster.setAnimation("Attack Slam")
             target = caster.getPos().polarOffset(caster.getPos().angleTo(target), 175)
-            dmg += caster.getBaseDamage(0) * 1.5
+            dmg += caster.getBaseDamage(0) * 1.0
         else
             dmg += caster.getInt(true)
         let facing = caster.getFacingAngle()

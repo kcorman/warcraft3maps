@@ -404,8 +404,8 @@ init
         LeaderboardDisplayBJ(true, currentWaveBoard)
         LeaderboardAddItem(currentWaveBoard, "Remaining Enemies", 0, BadGuy)
         LeaderboardSetSizeByItemCount(currentWaveBoard, 1)
-    unit u = createUnit(Player(0), PALADOUT, gg_rct_helperArea.getCenter(), angle(0))
-    u.setLevel(12, true)
+    //unit u = createUnit(Player(0), PALADOUT, gg_rct_helperArea.getCenter(), angle(0))
+    //u.setLevel(12, true)
     
 function updateBoardRemainingEnemies()
     if(currentWaveBoard != null and currentWave != null)

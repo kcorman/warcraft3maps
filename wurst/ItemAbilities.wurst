@@ -1,0 +1,70 @@
+package ItemAbilities
+import ClosureEvents
+import CustomAbilities
+import GameTimer
+import ClosureTimers
+import TimerUtils
+import ClosureForGroups
+import TerrainUtils
+import Vectors
+import Effect
+import Assets
+import BasicAI
+import OrderIds
+import HashSet
+import MonsterAI
+import Lightning
+import DummyCaster
+import SoundUtils
+import Knockback3
+import LinkedList
+import CustomItems
+import HashList
+import CustomUnitIds
+import HashMap
+import PTQConstants
+import CustomUnits
+
+HashSet<unit> vapeOwners = new HashSet<unit>
+HashMap<unit, EventListener> manaShields = new HashMap<unit, EventListener>
+function loseItem(unit u, item itm)
+    if(itm.getTypeId() == VAPE_OF_MANABURN)
+        vapeOwners.remove(u)
+    if(itm.getTypeId() == PENDANT_OF_MANASHIELD)
+        let ls = manaShields.getAndRemove(u)
+        destroy ls
+
+function acquireItem(unit u, item itm)
+    if(itm.getTypeId() == VAPE_OF_MANABURN)
+        vapeOwners.add(u)
+    else if(itm.getTypeId() == PENDANT_OF_MANASHIELD)
+        let ls = EventListener.add(u, EVENT_PLAYER_UNIT_DAMAGING) () ->
+            let dmg = EventData.getDamage()
+            let manaDrain = dmg * .3
+            let drained = min(u.getMana(), manaDrain)
+            u.setMana(drained)
+            EventData.setDamage(dmg - drained)
+            flashEffect(Abilities.manaDrainCaster, u, "chest")
+        manaShields.put(u, ls)
+init
+    getTimer().doPeriodically(.50) (CallbackPeriodic cb) ->
+        for unit u in vapeOwners
+            let manaDrainAmt = 10
+            let targets = getUnitsInRangeOfLocMatchingClosure(250, u.getPos()) (unit tg) ->
+                if(tg.isEnemyOf(u.getOwner()) and not tg.isInvulnerable())
+                    if(tg.getMana() >= manaDrainAmt)
+                        tg.setMana(tg.getMana() - manaDrainAmt)
+                        u.damageTarget(tg, manaDrainAmt.toReal())
+                        flashEffect(Abilities.absorbManaBirthMissile, tg, "head")
+                return false
+            targets.destr()
+    EventListener.add(EVENT_PLAYER_UNIT_PICKUP_ITEM) () ->
+        let itm = EventData.getItemManipulated()
+        acquireItem(GetTriggerUnit(), itm)
+
+    EventListener.add(EVENT_PLAYER_UNIT_DROP_ITEM) () ->
+        loseItem(GetTriggerUnit(), EventData.getItemManipulated())
+    EventListener.add(EVENT_PLAYER_UNIT_PAWN_ITEM) () ->
+        loseItem(GetTriggerUnit(), EventData.getItemManipulated())
+
+            

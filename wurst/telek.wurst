@@ -17,12 +17,8 @@ class Telek
         target.removeAbility('Amrf')
         this.spellLvl = spellLvl
         oldHeight = target.getFlyHeight()
-        print("Unit id = " + UnitId("e002").toString())
-        print("caster = " + caster.getName())
-        print("target = " + target.getName())
         wisp = CreateUnit(caster.getOwner(), 'e002', target.getX(), target.getY(), target.getFacing())
         wisp.setFlyHeight(200, 200)
-        print("Created unit: " + wisp.getName())
         ticks = spellLvl * 50
         SelectUnitForPlayerSingle(wisp, caster.getOwner())
         t = getTimer()
@@ -33,7 +29,6 @@ class Telek
             val.target.setPosFly(val.wisp.getPos3Fly())
             val.ticks--
             if(val.ticks <= 0)
-                print("Paused timer")
                 GetExpiredTimer().pause()
                 val.wisp.remove()
                 val.target.setFlyHeight(val.oldHeight, 800)

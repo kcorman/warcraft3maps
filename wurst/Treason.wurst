@@ -27,7 +27,6 @@ class SpinAttack
         this.caster = caster
         int abilityLvl = caster.getAbilityLevel(SPIN_ATTACK_ID)
         dmg = (caster.getAgi(true) * DMG_AGIL_FACTOR * abilityLvl) + (BASE_DMG_SEC + (abilityLvl * DMG_LVL_FACTOR)) / 4
-        print("Dmg = " + dmg.toString())
         start = caster.getPos()
         this.target = vec2(GetLocationX(targetLoc), GetLocationY(targetLoc))
         totalDist = caster.getPos().distanceTo(vec2(GetLocationX(targetLoc), GetLocationY(targetLoc)))

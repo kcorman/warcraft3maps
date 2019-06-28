@@ -25,6 +25,7 @@ import PTQConstants
 import CustomUnits
 constant int MURLOC_HEAD = 'n00O'
 constant int MEAT_WAGON = 'umtw'
+constant int ABILITY_CYCLOPS_BEAM = 'A01S'
 constant int MAX_COILS = 200
 constant SoundDefinition boneCrack = new SoundDefinition(Sounds.skeletonWhat1, false, true)
 constant SoundDefinition SOUND_MAMMOTH_CHARGE_HIT = new SoundDefinition(Sounds.rockHeavyBashFlesh2, false)
@@ -61,7 +62,7 @@ public function monsterCreated(unit monster)
         case COIL_HYDRA
             monster.setVertexColor(150, 230, 150, 30)
             for i = 0 to 1
-                createHydraCoil(monster)
+                createHydraCoil(monster, 1)
         case CRYPT_FREND
             addAI(new CryptFrendAI(monster))
         case DETH_NIGHT
@@ -116,32 +117,27 @@ function startBall(unit monster)
     trk.t = t
     trk.doStart()*/
 timer coilTimer = null
-public function createHydraCoil(unit caster)
+public function createHydraCoil(unit caster, int lvl)
     unit u = CreateUnit(caster.getOwner(), COIL_UNIT, caster.getX(), caster.getY(), caster.getFacing())
+    u.addAbility(ABILITY_COIL_LEVEL)
+    u.setAbilityLevel(ABILITY_COIL_LEVEL, lvl < 10 ? lvl : 10)
     CoilTracker tracker = new CoilTracker()
     tracker.coil = u
     tracker.caster = caster
     tracker.light = addLightning(LIGHTNING_CHAIN_LIGHTNING_PRIMARY, false, caster.getPos3with(1000), u.getPos3with(1000))
-    tracker.light.setColor(colorA(25, 180, 69, 255))
+    let bodyColor = colorA(255, 255 - (lvl * 20), 255 - (lvl * 20), 255)
+    let size = 1.1 + (lvl * .1)
+    let lightColor = colorA(25 + lvl * 10, 180 - (lvl * 15), 69, 255)
+    u.setVertexColor(bodyColor)
+    u.setScale(size)
+    u.setHP(u.getHP() * lvl)
+    u.setBaseDamage(u.getBaseDamage(0) + lvl * 15, 0)
+    tracker.light.setColor(lightColor)
     coilList.add(tracker)
     if(coilTimer == null)
         startCoilTimer()
 
-function promoteCoil()
-    LLIterator<CoilTracker> itr = coilList.iterator()
-    while(itr.hasNext())
-        let trk = itr.next()
-        if(trk.coil.isAliveTrick() and trk.level == 1)
-            trk.level++
-            trk.coil.setMaxHP(trk.coil.getMaxHP().toInt() * 2, true)
-            trk.coil.setBaseDamage(trk.coil.getBaseDamage(0) * 2, 0)
-            let clr = colorA(255,150,50,0)
-            //trk.coil.setVertexColor(clr)
-            trk.coil.setScale(1.5)
-            trk.light.setColor(clr)
-            flashEffect(Abilities.purgeBuffTarget, trk.coil, "overhead")
-            break
-    destroy itr
+
 public function startCoilTimer()
     coilTimer = getTimer()
     coilTimer.doPeriodically(.10) (CallbackPeriodic cb) ->
@@ -157,13 +153,13 @@ public function startCoilTimer()
                 if(trk.coil.getPos().distanceTo(trk.caster.getPos()) > 500)
                     trk.coil.issuePointOrder("attack", trk.caster.getPos())
             else
+                let prev = trk.coil
+                let lvl = prev.getAbilityLevel(ABILITY_COIL_LEVEL)
                 trk.light.destr()
                 destroy itr.remove()
                 if(coilList.size() < MAX_COILS)
-                    createHydraCoil(trk.caster)
-                    createHydraCoil(trk.caster)
-                else
-                    promoteCoil()
+                    createHydraCoil(trk.caster, lvl + 1)
+                    createHydraCoil(trk.caster, lvl + 1)
         destroy itr
 
 
@@ -391,10 +387,13 @@ init
         let count = 15
         getTimer().doPeriodicallyCounted(.10, count) (CallbackCounted cb) ->
             if(cb.isLast() and caster.isAlive())
+                let arc = 80.0.asAngleDegrees()
+                let cone1 = caster.getPos()
+                let cone2 = caster.getPos().polarOffset(caster.getFacingAngle() + arc, 1000)
+                let cone3 = caster.getPos().polarOffset(caster.getFacingAngle() -arc, 1000)
                 group tg = getUnitsInRangeOfLocMatchingClosure(1000, caster.getPos()) (unit u) ->
-                    let ang = caster.getPos().angleTo(u.getPos())
-                    let diff = (caster.getFacingAngle() - ang).radians().abs()
-                    return u.isEnemyOf(caster.getOwner()) and not u.isInvulnerable() and diff < (3 * PI) / 4 
+                    let isInCone = u.getPos().isInTriangle(cone1, cone2, cone3)
+                    return u.isEnemyOf(caster.getOwner()) and not u.isInvulnerable() and isInCone
                 for unit u in tg
                     addToBayWatch(u, 6)
                     Knockback3.add(u, 3000, caster.getFacingAngle(), angle(PI / 2.5))
@@ -405,12 +404,25 @@ init
                 caster.setScale(size)
                 caster.unpauseEx()
 
-
+    
     // Set fire
     EventListener.onCast(ABILITY_SET_FIRE) (unit caster) ->
         let target = GetSpellTargetUnit()
         setOnFire(target)
 
+    // cyclops lightning
+    EventListener.onCast(ABILITY_CYCLOPS_BEAM) (unit caster) ->
+        let mvmt = caster.getPos().angleTo(EventData.getAbilityTargetPos()).toVec(75)
+        let lt = addLightning(LIGHTNING_FINGER_OF_DEATH, true, caster.getPos(), caster.getPos())
+        let start = caster.getPos()
+        VecWrapper tgPos = new VecWrapper()
+        tgPos.pos = start
+        getTimer().doPeriodicallyTimed(.04, 1) (CallbackCounted cb) ->
+            tgPos.pos = tgPos.pos + mvmt
+            lt.move(true, start, tgPos.pos)
+            if(cb.isLast())
+                lt.destr()
+                destroy tgPos
     // Neck Freeze
     EventListener.onCast(ABILITY_NECK_FREEZE) (unit caster) ->
         let target = GetSpellTargetUnit()

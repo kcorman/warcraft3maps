@@ -3,6 +3,7 @@ import ClosureEvents
 import PTQConstants
 import ClosureTimers
 import TimerUtils
+import Abilities
 import CustomUnits
 import CustomAbilities
 
@@ -19,6 +20,7 @@ class WolfNightmare
         this.victim = victim
         this.caster = caster
         ogLoc = victim.getPos()
+        flashEffect(Abilities.howlCaster, ogLoc)
         victim.setPos(gg_rct_wolfattack.getCenter())
         wolf = createUnit(BadGuy, BIG_BAD_WOLF, gg_rct_wolfattack.getCenter(), angle(0))
         wolf.hide()
@@ -59,7 +61,8 @@ class WolfNightmare
         victim.setPos(ogLoc)
         victim.getOwner().resetToGameCamera(0)
         wolf.remove()
-        victim.getOwner().setCameraQuickPosition(ogLoc)
+        getTimer().doAfter(.25) () ->
+            victim.getOwner().setCameraQuickPosition(ogLoc)
         destroy this
 init
     // Wolf Nightmare
