@@ -61,5 +61,5 @@ init
     t2.registerAnyUnitEvent(EVENT_PLAYER_UNIT_SUMMON)
     t2.addCondition(Condition(() -> GetSummonedUnit().getTypeId() == unitType))
     t2.addAction(() -> DisasterTracker.trackers.put(GetSummonedUnit(), new DisasterTracker(GetSummonedUnit(), GetSummoningUnit())))
-    let u = createUnit(Player(0), 'H000', gg_rct_helperArea.getCenter(), angle(0))
-    u.setLevel(12, true)
+    //let u = createUnit(Player(0), 'H000', gg_rct_helperArea.getCenter(), angle(0))
+    //u.setLevel(12, true)

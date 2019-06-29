@@ -7,9 +7,12 @@ import GameInit
 import ClosureTimers
 import CustomAbilities
 import PTQConstants
+import Quest
+import Icons
 import UnitTrainers
 import Abilities
 import Units
+import QuestItem
 import CustomUnitIds
 import WeatherEffects
 import Weather
@@ -146,6 +149,13 @@ function purgeDeadUnits()
         if(not u.isAlive())
             itr.remove()
     destroy itr
+
+// TODO: Is there a better way to do this?
+function getUnitNameById(int id) returns string
+    let u = createUnit(Player(11), id, vec2(0,0), angle(0))
+    let name = u.getName()
+    u.remove()
+    return name
 function spawnGoodGusy()
     purgeDeadUnits()
     THE_BANDIT.issuePointOrder("attack", gg_rct_BanditCamp.getCenter())
@@ -255,7 +265,7 @@ init
     waves.add(new Wave(toList(
         new UnitAndAmount(ZOMBIE, 5),
         new UnitAndAmount(MEAT_WAGON, 1),
-        new UnitAndAmount(ZOMBIEMANCER, 4)
+        new UnitAndAmount(ZOMBIEMANCER, 3)
     )))
     waves.add(new Wave(toList(
         new UnitAndAmount(LIFE_STEALING_GHOST, 2),
@@ -282,11 +292,9 @@ init
         new UnitAndAmount(DETH_NIGHT, 2),
         new UnitAndAmount(CRYPT_FREND, 8)
     )))
-    // too ez
     waves.add(new Wave(toList(
         new UnitAndAmount(DIRE_MAMMOTH, 1)
     )))
-    // also too ez
     waves.add(new Wave(toList(
         new UnitAndAmount(COIL_SNIPER, 1)
     )))
@@ -295,14 +303,11 @@ init
         new UnitAndAmount(CRYPT_FREND, 4),
         new UnitAndAmount(COIL_SNIPER, 1)
     )))
-    // Maybe coil hydras should always make stronger heads, which would help prevent AOE from
-    // going as nuts as fast too
     waves.add(new Wave(toList(
         new UnitAndAmount(COIL_HYDRA, 1) // boss
     )))
-    // seemed like a good difficulty, maybe a little ez
     waves.add(new Wave(toList(
-        new UnitAndAmount(UNSTOPPABLE_TANK, 1) // boss
+        new UnitAndAmount(UNSTOPPABLE_TANK, 1, true) // boss
     )))
     waves.add(new Wave(toList(
         new UnitAndAmount(DIRE_MAMMOTH, 2)
@@ -364,6 +369,25 @@ init
     waves.add(new Wave(toList(
         new UnitAndAmount(BIG_BAD_WOLF, 1, true)
     )))
+    getTimer().doAfter(.1) () ->
+        quest q = CreateQuest()
+        q.setTitle("Waves")
+        q.setIcon(Icons.bTNGhoul)
+        q.setRequired(true)
+        var index = 1
+        for Wave wv in waves
+            //waveString+= "Wave " + index.toString()
+            CreateQuestItemBJ(q, "Wave " + index.toString())
+            for UnitAndAmount ua in wv.units 
+                let unitName = getUnitNameById(ua.typ)
+                var count = ua.relativeAmount
+                if(not ua.boss)
+                    count *= 3
+                CreateQuestItemBJ(q, "    " + count.toString() + " " + unitName)
+                //waveString += "\n\t" + ua.relativeAmount.toString() + " " + unitName
+            //waveString += "\n"
+            index++
+        //q.setDescription(waveString)
     trigger trig = CreateTrigger()
     trig.registerPlayerChatEvent(Player(0), "next", false)
     trig.addAction(() -> currentWave.forceEnd())

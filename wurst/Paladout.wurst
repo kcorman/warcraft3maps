@@ -54,7 +54,6 @@ init
                 target.setHP(target.getHP() + dmg)
 
         getTimer().doAfter(duration.toReal()) () ->
-            unregisterEventsForUnit(caster)
             ef.destr()
             destroy listener
 

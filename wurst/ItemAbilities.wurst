@@ -26,26 +26,20 @@ import PTQConstants
 import CustomUnits
 
 HashSet<unit> vapeOwners = new HashSet<unit>
-HashMap<unit, EventListener> manaShields = new HashMap<unit, EventListener>
+HashSet<unit> manaShields = new HashSet<unit>
+class Inventory
+    HashSet<item> ownedItems
 function loseItem(unit u, item itm)
     if(itm.getTypeId() == VAPE_OF_MANABURN)
         vapeOwners.remove(u)
     if(itm.getTypeId() == PENDANT_OF_MANASHIELD)
-        let ls = manaShields.getAndRemove(u)
-        destroy ls
+        manaShields.remove(u)
 
 function acquireItem(unit u, item itm)
     if(itm.getTypeId() == VAPE_OF_MANABURN)
         vapeOwners.add(u)
     else if(itm.getTypeId() == PENDANT_OF_MANASHIELD)
-        let ls = EventListener.add(u, EVENT_PLAYER_UNIT_DAMAGING) () ->
-            let dmg = EventData.getDamage()
-            let manaDrain = dmg * .3
-            let drained = min(u.getMana(), manaDrain)
-            u.setMana(drained)
-            EventData.setDamage(dmg - drained)
-            flashEffect(Abilities.manaDrainCaster, u, "chest")
-        manaShields.put(u, ls)
+        manaShields.add(u)
 init
     getTimer().doPeriodically(.50) (CallbackPeriodic cb) ->
         for unit u in vapeOwners
@@ -66,5 +60,14 @@ init
         loseItem(GetTriggerUnit(), EventData.getItemManipulated())
     EventListener.add(EVENT_PLAYER_UNIT_PAWN_ITEM) () ->
         loseItem(GetTriggerUnit(), EventData.getItemManipulated())
+    EventListener.add(EVENT_PLAYER_UNIT_DAMAGING) () ->
+        let u = EventData.getDamageTarget()
+        if(u.hasItemById(PENDANT_OF_MANASHIELD))
+            let dmg = EventData.getDamage()
+            let manaDrain = dmg * .3
+            let drained = min(u.getMana(), manaDrain)
+            u.setMana(u.getMana() - drained)
+            EventData.setDamage(dmg - drained)
+            flashEffect(Abilities.manaDrainCaster, u, "chest")
 
             

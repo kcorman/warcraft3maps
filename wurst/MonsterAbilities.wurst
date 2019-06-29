@@ -27,6 +27,7 @@ constant int MURLOC_HEAD = 'n00O'
 constant int MEAT_WAGON = 'umtw'
 constant int ABILITY_CYCLOPS_BEAM = 'A01S'
 constant int MAX_COILS = 200
+constant int ABILITY_SET_TARGET_WAY_GATE = 'A01T'
 constant SoundDefinition boneCrack = new SoundDefinition(Sounds.skeletonWhat1, false, true)
 constant SoundDefinition SOUND_MAMMOTH_CHARGE_HIT = new SoundDefinition(Sounds.rockHeavyBashFlesh2, false)
 constant SoundDefinition SOUND_MAMMOTH_CHARGE_WINDUP = new SoundDefinition(Sounds.mammothYes1, false)
@@ -537,6 +538,21 @@ init
                             createItem('gold', attacked.getPos().polarOffset(attacked.getPos().angleTo(attacker.getPos()), (50 + i * 50).toReal()))
 
             
-            
+    EventListener.add(EVENT_PLAYER_UNIT_SPELL_CAST) () ->
+        let abil = GetSpellAbilityId()
+        if(abil == ABILITY_SET_TARGET_WAY_GATE)
+            let tg = GetSpellTargetUnit()
+            let caster = GetSpellAbilityUnit()
+            if(not tg.hasAbility(ABILITY_SET_TARGET_WAY_GATE))
+                printTimedToPlayer("Invalid Target. You must target another Way Gate", 4, caster.getOwner())
+                caster.disableAbility(ABILITY_SET_TARGET_WAY_GATE, true, false)
+                getTimer().doAfter(1) () ->
+                    caster.disableAbility(ABILITY_SET_TARGET_WAY_GATE, false, false)
+    EventListener.onCast(ABILITY_SET_TARGET_WAY_GATE) (unit caster) ->
+        let tg = EventData.getSpellTargetPos()
+        if(GetSpellTargetUnit().hasAbility(ABILITY_SET_TARGET_WAY_GATE))
+            WaygateSetDestination(caster, tg.x, tg.y)
+            WaygateActivate(caster, true)
 
+                
     

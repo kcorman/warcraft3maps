@@ -1,0 +1,5 @@
+package DebugSetup
+import UnitIds
+constant player DEBUG_PLAYER = Player(0)
+
+init
