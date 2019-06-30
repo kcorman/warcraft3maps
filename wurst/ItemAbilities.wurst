@@ -43,7 +43,7 @@ function acquireItem(unit u, item itm)
 init
     getTimer().doPeriodically(.50) (CallbackPeriodic cb) ->
         for unit u in vapeOwners
-            let manaDrainAmt = 10
+            let manaDrainAmt = 15
             let targets = getUnitsInRangeOfLocMatchingClosure(250, u.getPos()) (unit tg) ->
                 if(tg.isEnemyOf(u.getOwner()) and not tg.isInvulnerable())
                     if(tg.getMana() >= manaDrainAmt)

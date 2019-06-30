@@ -26,8 +26,8 @@ class DoSurprise
             s.doFear()
         end)
     function doFear()
-        let time = 2. + (caster.getInt(true) / 100) * caster.getAbilityLevel(abilityId)
-        print("Time = " + time.toString())
+        let time = 2. + (caster.getInt(true) / 50) * caster.getAbilityLevel(abilityId)
+        //print("Time = " + time.toString())
         target.issuePointOrder("move", caster.getPos().polarOffset(caster.getFacingAngle(), 400))
         e = AddSpecialEffectTarget("Abilities\\Spells\\Other\\HowlOfTerror\\HowlTarget.mdl", target, "overhead")
         

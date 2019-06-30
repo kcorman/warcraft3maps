@@ -17,7 +17,7 @@ class Floor100
         this.caster = caster
         this.abilityLvl = caster.getAbilityLevel(FLOOR_100)
         damage = abilityLvl * 300.0 + abilityLvl * caster.getBaseDamage(0) * 5
-        print("Damage is " + damage.toString() + ", base dmg = " + caster.getBaseDamage(0).toString())
+        // print("Damage is " + damage.toString() + ", base dmg = " + caster.getBaseDamage(0).toString())
         timer t = getTimer()
         t.setData(this castTo int)
         t.start(2, () -> begin

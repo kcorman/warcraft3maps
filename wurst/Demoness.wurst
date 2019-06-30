@@ -156,7 +156,7 @@ init
         incrementSoulCount(caster, -1)
         let soulDamage = souls * 25
         let lvl = caster.getAbilityLevel(SOUL_FIRE)
-        let maxDamage = 200 * lvl + (caster.getInt(true) * 2)
+        let maxDamage = 200 * lvl + (caster.getInt(true) * 4)
         let dmg = 50 * lvl + min(maxDamage, soulDamage).toReal()
         group damaged = GetUnitsInRangeOfLocAll(500, PTQUtils.vec2ToLoc(origin))
         // print("Damage = " + dmg.toString())

@@ -22,7 +22,7 @@ class WonderfulTiggers
         this.start = caster.getPos()
         this.currentTarget = initialTarget
         this.remainingBounces = caster.getAbilityLevel(abilityId) * BOUNCES_PER_LEVEL + 3
-        this.dmg = caster.getAbilityLevel(abilityId) * 100.0 + 200
+        this.dmg = caster.getAbilityLevel(abilityId) * 100.0 + 200 + caster.getInt(true) * 4
         this.totalDist = start.distanceTo(currentTarget.getPos())
 
 

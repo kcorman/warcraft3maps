@@ -1,5 +1,9 @@
 package DebugSetup
 import UnitIds
+import CustomUnits
+import CustomUnitIds
+let DEBUG_SPAWN_UNIT_POS = gg_rct_helperArea.getCenter()
 constant player DEBUG_PLAYER = Player(0)
-
 init
+    //let u = createUnit(DEBUG_PLAYER, DRUID_OF_CLAW, DEBUG_SPAWN_UNIT_POS, angle(0))
+    //u.setLevel(12, true)
