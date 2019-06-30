@@ -30,7 +30,7 @@ let SOUND_HEFFALUMP = new SoundDefinition("war3mapImported\\Heffalump.mp3", fals
 
 init
     EventListener.add(EVENT_PLAYER_HERO_SKILL) () ->
-        if(EventData.getAbilityIdLearned() == ABILITY_BEAR_REGEN and GetLearningUnit().getTypeId() == DRUID_OF_CLAW_MORPH)
+        if(EventData.getLearnedSkill() == ABILITY_BEAR_REGEN and GetLearningUnit().getTypeId() == DRUID_OF_CLAW_MORPH)
             //GetLearningUnit().disableAbility(ABILITY_BEAR_REGEN, true, false)
 
     EventListener.onCast(ABILITY_HEFFALUMPS) (unit caster) ->

@@ -53,17 +53,17 @@ init
                 return false
             targets.destr()
     EventListener.add(EVENT_PLAYER_UNIT_PICKUP_ITEM) () ->
-        let itm = EventData.getItemManipulated()
+        let itm = EventData.getManipulatedItem()
         acquireItem(GetTriggerUnit(), itm)
 
     EventListener.add(EVENT_PLAYER_UNIT_DROP_ITEM) () ->
-        loseItem(GetTriggerUnit(), EventData.getItemManipulated())
+        loseItem(GetTriggerUnit(), EventData.getManipulatedItem())
     EventListener.add(EVENT_PLAYER_UNIT_PAWN_ITEM) () ->
-        loseItem(GetTriggerUnit(), EventData.getItemManipulated())
+        loseItem(GetTriggerUnit(), EventData.getManipulatedItem())
     EventListener.add(EVENT_PLAYER_UNIT_DAMAGING) () ->
         let u = EventData.getDamageTarget()
         if(u.hasItemById(PENDANT_OF_MANASHIELD))
-            let dmg = EventData.getDamage()
+            let dmg = EventData.getEventDamage()
             let manaDrain = dmg * .3
             let drained = min(u.getMana(), manaDrain)
             u.setMana(u.getMana() - drained)

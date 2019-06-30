@@ -3,7 +3,6 @@ Any line starting with "-" in this file counts as an argument.
 This means to disable or enable any flag, remove or add the "-" at the start of the line.
 
 Following are the default enabled arguments:
-
 -runcompiletimefunctions
 -injectobjects
 -stacktraces

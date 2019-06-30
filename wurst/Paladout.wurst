@@ -56,7 +56,7 @@ init
         let listener = EventListener.add(EVENT_PLAYER_UNIT_DAMAGED) () ->
             let src = GetEventDamageSource()
             if(src == caster)
-                let dmg = EventData.getDamage() * (.5 + .5 * lvl)
+                let dmg = EventData.getEventDamage() * (.5 + .5 * lvl)
                 target.setHP(target.getHP() + dmg)
                 dmgWrapper.val += dmg
                 if(dmgWrapper.val >= threshold)
@@ -73,7 +73,7 @@ init
     EventListener.add(EVENT_PLAYER_HERO_SKILL) () ->
         let learned = GetLearnedSkill()
         if(learned == ABILITY_PALADOUT_SPIDY_AURA and GetLearnedSkillLevel() == 1)
-            paladouts.add(EventData.getUnitLearning())
+            paladouts.add(EventData.getLearningUnit())
     EventListener.add(EVENT_PLAYER_UNIT_ATTACKED) () ->
         let victim = GetAttackedUnitBJ()
         let attacker = GetAttacker()
