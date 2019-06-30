@@ -27,7 +27,7 @@ constant int INITIAL_GOLD = 9001
 constant int INITIAL_WOOD = 200
 constant vec2 SHOP1LOC = vec2(7318., -12387.)
 constant vec2 MERC1LOC = vec2(9390., -11863.)
-constant vec2 WEAPON_SHOP_LOC = vec2(8744., -11817.)
+constant vec2 WEAPON_SHOP_LOC = gg_rct_weaponshop.getCenter()
 public unit THE_BANDIT = gg_unit_n000_0018
 public unit COOL_TAVERN
 constant rect BanditCamp = gg_rct_BanditCamp
