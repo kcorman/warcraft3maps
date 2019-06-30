@@ -28,15 +28,18 @@ import CustomUnitIds
 LinkedList<int> auraProgression = new LinkedList<int>
 LinkedList<unit> paladouts = new LinkedList<unit>
 int curIndex = 0
-init
 
+class DmgWrapper
+    real val
+    real start
+init
     auraProgression.add(ABILITY_PALADOUT_DEVOTION)
     auraProgression.add(ABILITY_PALADOUT_ENDURANCE)
     auraProgression.add(ABILITY_PALADOUT_THORNS)
     EventListener.onCast(ABILITY_FACE_SMASH) (unit caster) ->
         let target = GetSpellTargetUnit()
         let lvl = caster.getAbilityLevel(ABILITY_FACE_SMASH)
-        let dmg = caster.getStr(true) * 2 + lvl * 75.0
+        let dmg = caster.getBaseDamage(0) * 2 + lvl * 75.0
         caster.damageTarget(target, dmg, true, false, ATTACK_TYPE_HERO)
         getTimer().doAfter(.2) () ->
             Knockback3.add(target, 1200, caster.getPos().angleTo(target.getPos()), angle(PI/6))
@@ -46,16 +49,26 @@ init
         let target = GetSpellTargetUnit()
         let lvl = caster.getAbilityLevel(ABILITY_WWUD)
         let duration = 3 + lvl * 2
+        let dmgWrapper = new DmgWrapper()
+        dmgWrapper.start = getElapsedGameTime()
         let ef = addEffect(Abilities.voodooAuraTarget, target, "chest")
+        let threshold = 250
         let listener = EventListener.add(EVENT_PLAYER_UNIT_DAMAGED) () ->
             let src = GetEventDamageSource()
             if(src == caster)
                 let dmg = EventData.getDamage() * (.5 + .5 * lvl)
                 target.setHP(target.getHP() + dmg)
-
-        getTimer().doAfter(duration.toReal()) () ->
-            ef.destr()
-            destroy listener
+                dmgWrapper.val += dmg
+                if(dmgWrapper.val >= threshold)
+                    dmgWrapper.val = 0
+                    dmgWrapper.start = getElapsedGameTime()
+        getTimer().doPeriodicallyTimed(.5, 45) (CallbackCounted cb) ->
+            let diff = getElapsedGameTime() - dmgWrapper.start
+            if(diff > duration or cb.isLast())
+                ef.destr()
+                destroy listener
+                destroy dmgWrapper
+                cb.stop()
 
     EventListener.add(EVENT_PLAYER_HERO_SKILL) () ->
         let learned = GetLearnedSkill()

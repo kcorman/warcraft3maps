@@ -36,20 +36,25 @@ init
     
     EventListener.add(EVENT_PLAYER_UNIT_DEATH) () ->
         let dyingUnit = GetDyingUnit()
-        if(dyingUnit.hasAbility(ABILITY_GIVES_LOOT))
+                    //setTextTagTime(t, 2)
+        if(dyingUnit.hasAbility(ABILITY_GIVES_BOSS_LOOT))
+            let baseGold = dyingUnit.getLevel() * 100
+            for player p in Utils.allPlayers
+                p.addGold(baseGold)
+                createTTEx(dyingUnit.getPos3Real(), vec2(0, .03), "BOSS +" + baseGold.toString(), 10, 2, colorA(255, 215, 0,0))
+        else if(dyingUnit.hasAbility(ABILITY_GIVES_LOOT))
             if(GetRandomReal(0, 1.) > .96)
                 createItem(ITEM_LUMBER, GetDyingUnit().getPos())
             else if (GetRandomReal(0, 1) > .96)
                 createItem(ITEM_GOLD, GetDyingUnit().getPos())
 
             if(dyingUnit.getOwner() == BadGuy)
-                let totalGold = dyingUnit.getLevel() * 50
-                let perPersonGold = (totalGold / Utils.allPlayers.size().toReal()).toInt()
+                let baseGold = dyingUnit.getLevel() * 15
+                let perPersonGold = (dyingUnit.getLevel() * 15 / Utils.allPlayers.size().toReal()).toInt()
+                let totalGold = baseGold + perPersonGold
                 for player p in Utils.allPlayers
-                    p.addGold(perPersonGold)
-                    createTTEx(dyingUnit.getPos3Real(), vec2(0, .03), "+" + perPersonGold.toString(), 10, 2, colorA(255, 215, 0,0))
-
-                    //setTextTagTime(t, 2)
+                    p.addGold(totalGold)
+                    createTTEx(dyingUnit.getPos3Real(), vec2(0, .03), "+" + totalGold.toString(), 10, 2, colorA(255, 215, 0,0))
 
 
  

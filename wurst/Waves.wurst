@@ -74,22 +74,25 @@ class Wave
         let diffAdjust = (1 + (difficultyMultplier - 1) * .5) // difficulty 1 means 1x units hp, difficulty 2 means 1.5x units, etc.
         int actualAmt = (amt.relativeAmount * diffAdjust).toInt()
         for i = 1 to actualAmt
-            unit u = prepareUnit(createUnit(BadGuy, amt.typ, BAD_GUY_03.getCenter(), angle(0)))
+            unit u = prepareUnit(createUnit(BadGuy, amt.typ, BAD_GUY_03.getCenter(), angle(0)), amt.boss)
             
             flashEffect(Abilities.darkSummonTarget, u, "origin")
             monsterCreated(u)
             if (not amt.boss)
-                u = prepareUnit(createUnit(BadGuy, amt.typ, BAD_GUY_01.getCenter(), angle(0)))
+                u = prepareUnit(createUnit(BadGuy, amt.typ, BAD_GUY_01.getCenter(), angle(0)), amt.boss)
                 flashEffect(Abilities.darkSummonTarget, u, "origin")
                 monsterCreated(u)
-                u = prepareUnit(createUnit(BadGuy, amt.typ, BAD_GUY_02.getCenter(), angle(0)))
+                u = prepareUnit(createUnit(BadGuy, amt.typ, BAD_GUY_02.getCenter(), angle(0)), amt.boss)
                 flashEffect(Abilities.darkSummonTarget, u, "origin")
                 monsterCreated(u)
     // Most unit preparation should go in MonsterAbilities#monsterCreated
     // but there are some things we only want to have apply to the initial set of created
     // monsters and not summoned units, such as giving loot
-    function prepareUnit(unit u) returns unit
-        u.addAbility(ABILITY_GIVES_LOOT)
+    function prepareUnit(unit u, boolean boss) returns unit
+        if(boss)
+            u.addAbility(ABILITY_GIVES_BOSS_LOOT)
+        else
+            u.addAbility(ABILITY_GIVES_LOOT)
         return u
 
     function spawn()
