@@ -35,7 +35,7 @@ init
 
     EventListener.onCast(ABILITY_HEFFALUMPS) (unit caster) ->
         let lvl = caster.getAbilityLevel(ABILITY_HEFFALUMPS)
-        let dmg = 75 * lvl + caster.getInt(true)
+        let dmg = 75 * lvl + caster.getInt(true) * 2
         let snd = PTQUtils.playLocalSound(SOUND_HEFFALUMP, caster.getPos(), 10)
         let tg = caster.getPos().polarOffset(caster.getFacingAngle(), 300)
         getTimer().doPeriodicallyTimed(.4, 8) (CallbackCounted cb) ->
@@ -83,7 +83,7 @@ init
             target = caster.getPos().polarOffset(caster.getPos().angleTo(target), 175)
             dmg += caster.getBaseDamage(0) * 1.0
         else
-            dmg += caster.getInt(true)
+            dmg += caster.getInt(true) * 4
         let facing = caster.getFacingAngle()
         let itrs = (isBear ? 24 : 12)
 

@@ -117,7 +117,7 @@ init
     // Telekenesis!
     EventListener.onCast(telekenesis) (unit caster) ->
         let lvl = caster.getAbilityLevel(telekenesis)
-        let target = getSpellTargetPos()
+        let target = EventData.getSpellTargetPos()
         let duration = (2 + lvl * 2).toReal()
         group affected = GetUnitsInRangeOfLocAll((200 + (100 * lvl)).toReal(), GetSpellTargetLoc())
         boolean casterIsAffected = false
@@ -139,8 +139,11 @@ init
                 affected.destr()
             else
                 for unit u in affected
-                    let movementAmount = min(u.getPos().distanceTo(cursor.getPos()) / 10, (lvl * 20).toReal())
-                    u.setPos(u.getPos().moveTowards(cursor.getPos(), movementAmount))
+                    let power = lvl * 30
+                    let reduction = 1 + u.getLevel().toReal() / 3
+                    let actualPower = power / reduction
+                    let movementAmount = min(u.getPos().distanceTo(cursor.getPos()) / 10, actualPower)
+                    u.setXY(u.getPos().moveTowards(cursor.getPos(), movementAmount))
     // Clock!
     EventListener.onCast(sylarWatch) (unit caster) ->
         let lvl = caster.getAbilityLevel(sylarWatch)
