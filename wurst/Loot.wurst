@@ -49,8 +49,8 @@ init
                 createItem(ITEM_GOLD, GetDyingUnit().getPos())
 
             if(dyingUnit.getOwner() == BadGuy)
-                let baseGold = dyingUnit.getLevel() * 15
-                let perPersonGold = (dyingUnit.getLevel() * 15 / Utils.allPlayers.size().toReal()).toInt()
+                let baseGold = dyingUnit.getLevel() * 10
+                let perPersonGold = (dyingUnit.getLevel() * 10 / Utils.allPlayers.size().toReal()).toInt()
                 let totalGold = baseGold + perPersonGold
                 for player p in Utils.allPlayers
                     p.addGold(totalGold)
