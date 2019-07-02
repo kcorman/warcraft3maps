@@ -430,7 +430,7 @@ init
         PTQUtils.enableFlyingForUnit(target)
         target.pause()
         SetUnitLookAt(target, "bone_head", caster, 0, 0, 0)
-        let time = 3.
+        let time = 2.
         target.setFlyHeight(200, 200)
         let tick = .10
         let og = caster.getFacingAngle()
@@ -440,7 +440,7 @@ init
             if(cb.isLast())
                 target.setFlyHeight(0, 0)
                 ResetUnitLookAt(target)
-                caster.damageTarget(target, 800)
+                caster.damageTarget(target, 400)
                 target.unpause()
             else
                 target.setFacing(og + angle(radPerTick * cb.getCount()))
