@@ -2,8 +2,27 @@ package DebugSetup
 import UnitIds
 import CustomUnits
 import CustomUnitIds
+import ClosureEvents
+import AbilityIds
+import ClosureTimers
 let DEBUG_SPAWN_UNIT_POS = gg_rct_helperArea.getCenter()
 constant player DEBUG_PLAYER = Player(0)
 init
-    let u = createUnit(DEBUG_PLAYER, SYLAR, DEBUG_SPAWN_UNIT_POS, angle(0))
+    /*var u = createUnit(DEBUG_PLAYER, SYLAR, DEBUG_SPAWN_UNIT_POS, angle(0))
     u.setLevel(12, true)
+    let demon = createUnit(DEBUG_PLAYER, DEMONESS, DEBUG_SPAWN_UNIT_POS, angle(0))
+    demon.setLevel(12, true)
+    u = createUnit(DEBUG_PLAYER, UnitIds.bandit, DEBUG_SPAWN_UNIT_POS, angle(0))..removeAbility(AbilityIds.shadowMeld)
+    u.setScale(2)
+    for i = 0 to 5
+        createUnit(DEBUG_PLAYER, UnitIds.zombie, DEBUG_SPAWN_UNIT_POS, angle(0))..setColor(PLAYER_COLOR_BLACK_AGGRESSIVE)
+        createUnit(DEBUG_PLAYER, UnitIds.skeletalarcher, DEBUG_SPAWN_UNIT_POS, angle(0))..setColor(PLAYER_COLOR_BLACK_AGGRESSIVE)
+        createUnit(DEBUG_PLAYER, UnitIds.skeletalmage, DEBUG_SPAWN_UNIT_POS, angle(0))..setColor(PLAYER_COLOR_BLACK_AGGRESSIVE)
+
+    EventListener.add(EVENT_PLAYER_END_CINEMATIC) () ->
+        if(EventData.getTriggerPlayer() == DEBUG_PLAYER)
+            DEBUG_PLAYER.setCameraTargetControllerNoZ(demon, vec2(0,0), true)
+            DEBUG_PLAYER.setCameraField(CAMERA_FIELD_ANGLE_OF_ATTACK, 345, 0)
+            DEBUG_PLAYER.setCameraField(CAMERA_FIELD_ROTATION, (demon.getFacingAngle() + angle(PI)).degrees() , 0)
+            DEBUG_PLAYER.setCameraField(CAMERA_FIELD_ZOFFSET, 400, 0)
+            DEBUG_PLAYER.setCameraField(CAMERA_FIELD_TARGET_DISTANCE, 500, 0)*/

@@ -73,8 +73,11 @@ public function monsterCreated(unit monster)
             addAI(new DethNightAI(monster))
         case UNSTOPPABLE_TANK
             handleUnstoppableTank(monster)
+        case LEE_HARVEY
+            addAI(new HarveyAI(monster))
         case GIANT_ENEMY_CRAB
             HERES_A_CRAB.play()
+            addAI(new CrabAI(monster))
         case MURLOC_HEAD
             //PTQUtils.enableFlyingForUnit(monster)
             monster.setAnimation("Walk Swim")
@@ -205,12 +208,21 @@ function doCrabJump(unit caster, group targets)
             if(hitTarget)
                 caster.damageTarget(tg, 800)
                 doCrabJump(caster, targets)
+                if(gg_snd_WoodHeavyBashWood1.isPlaying())
+                    gg_snd_WoodHeavyBashWood1.stop(false, false)
+                PlaySoundAtPointBJ(gg_snd_WoodHeavyBashWood1, 100, PTQUtils.vec2ToLoc(caster.getPos()), 0)
             else
                 caster.pauseEx()
                 caster.setVertexColor(colorA(255, 255, 255, 0))
-                let ef = addEffect(Units.spiderCrab, caster.getPos3Real() + vec3(0,0,25))
-                ef.setScale(3)
-                ef.setPitch(PI)
+                let ef = addEffect(Units.spiderCrab, caster.getPos3Real() + vec3(0,0,-150))
+                ef.setScale(4)
+                let ct = 8
+                doPeriodicallyCounted(.04, ct) (CallbackCounted cb) ->
+                    if(cb.isLast())
+                        ef.setPitch(PI)
+                    else
+                        let ratio = (ct - cb.getCount()) / ct
+                        ef.setPitch(PI * ratio)
                 let hpFactor = 200.0
                 caster.setHP(caster.getHP() / hpFactor)
                 ATTACK_THE_CRAB.play()
@@ -478,8 +490,8 @@ init
 
     // Crab Jump
     EventListener.onCast(ABILITY_CRAB_JUMP) (unit caster) ->
-        group targets = getUnitsInRangeOfLocMatchingClosure(600, caster.getPos()) (unit u) ->
-            return u.isEnemyOf(caster.getOwner()) and not u.isInvulnerable()
+        group targets = getUnitsInRangeOfLocMatchingClosure(1200, caster.getPos()) (unit u) ->
+            return u.isAlive() and u.isEnemyOf(caster.getOwner()) and not u.isInvulnerable()
         doCrabJump(caster, targets)
     
     EventListener.onCast(ABILITY_ROBINHOOD_ARROW) (unit caster) ->

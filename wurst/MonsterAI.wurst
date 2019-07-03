@@ -24,6 +24,14 @@ public class DethNightAI extends AbstractAIHandler
             u.issuePointOrder("move", fleeDest)
             trackOrderTime()
 
+public class CrabAI extends AbstractAIHandler
+    construct(unit u)
+        super(u)
+    override function onDiffHP(real diff)
+        if(diff < 0 and getTimeSinceLastOrder() > 5)
+            u.issueImmediateOrderById(OrderIds.waterelemental)
+            trackOrderTime()
+
 public class CryptFrendAI extends AbstractAIHandler
     construct(unit u)
         super(u)
@@ -47,6 +55,38 @@ public class CryptFrendAI extends AbstractAIHandler
                 ..castTarget(skillCoilEffect, 1, OrderIds.deathcoil, u)
             
         dks.destr()
+
+public class HarveyAI extends AbstractAIHandler
+    unit gassyGnoll
+    construct(unit u)
+        super(u)
+
+    override function onTick()
+        super.onTick()
+        if(getTimeSinceLastOrder() > 1 and gassyGnoll == null or getTimeSinceLastOrder() > 5) // more like gassy null amirite
+            // find another gnoll if possible
+            group g = getUnitsInRangeOfLocMatchingClosure(4000., u.getPos()) (unit test) ->
+                return test.isAlive() and test.getTypeId() == GASSY_GNOLL and not u.getOwner().isEnemyOf(test.getOwner()) and test != gassyGnoll
+            
+            if(g.isEmpty())
+                u.setFlyHeight(0, 0)
+                u.disableAbility(ABILITY_GNOLL_EVASION, true, false)
+            else
+                unit bestUnit = null
+                var dist = 0.0
+                for unit test in g
+                    let newDist =  bestUnit.getPos().distanceTo(u.getPos())
+                    if(bestUnit == null or newDist > dist )
+                        bestUnit = test
+                        dist = newDist
+                u.disableAbility(ABILITY_GNOLL_EVASION, false, false)
+                u.setFlyHeight(50, 0)
+                gassyGnoll = bestUnit
+                flashEffect(Abilities.mirrorImageCaster, u, "chest")
+            g.destr()
+            trackOrderTime()
+        if(gassyGnoll != null)
+            u.setXY(gassyGnoll.getPos())
 
 
 

@@ -358,6 +358,11 @@ init
         new UnitAndAmount(ICE_ELEMENTAL, 4)
     )))
     waves.add(new Wave(toList(
+        new UnitAndAmount(LEE_HARVEY, 1, true),
+        new UnitAndAmount(GASSY_GNOLL, 2),
+        new UnitAndAmount(REGULAR_GNOLL, 2)
+    ), "Boss: Lee Harvey Oswald. Now is probably not a good time for a parade...", true))
+    waves.add(new Wave(toList(
         new UnitAndAmount(AERO_BEAR, 1)
     ), "Do a bear-ol roll. And deflect enemy attacks...", false))
     // way too easy and poor skeletons dont properly look for gold.
