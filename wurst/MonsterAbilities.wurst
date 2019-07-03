@@ -15,6 +15,7 @@ import HashSet
 import MonsterAI
 import Lightning
 import DummyCaster
+import MissleEffects
 import SoundUtils
 import Knockback3
 import LinkedList
@@ -191,6 +192,29 @@ function handleUnstoppableTank(unit tankMonster)
 
 HashSet<unit> unitsOnFire = new HashSet<unit>()
 
+function doCrabJump(unit caster, group targets)
+    if(targets.isEmpty())
+        targets.destr()
+    else
+        let tg = targets.next()
+        caster.attemptJumpToTarget(tg, max(900, caster.getPos().distanceTo(tg.getPos()) * 3), 20.0.asAngleDegrees()) (boolean hitTarget) ->
+            if(hitTarget)
+                caster.damageTarget(tg, 800)
+                doCrabJump(caster, targets)
+            else
+                caster.pauseEx()
+                caster.setVertexColor(colorA(255, 255, 255, 0))
+                let ef = addEffect(Units.spiderCrab, caster.getPos3Real() + vec3(0,0,50))
+                ef.setScale(3)
+                ef.setPitch(PI)
+                let hp = caster.getHP()
+                doAfter(4) () ->
+                    caster.unpauseEx()
+                    caster.setVertexColor(colorA(255, 255, 255, 255))
+                    ef.setPos(vec2(0,0))
+                    ef.destr()
+                    let diff = caster.getHP() - hp
+                    caster.setHP(caster.getHP() + diff * 1000)
 function unit.isOnFire() returns boolean
     return unitsOnFire.has(this)
 function unit.setOnFire(boolean val)
@@ -444,6 +468,12 @@ init
                 target.unpause()
             else
                 target.setFacing(og + angle(radPerTick * cb.getCount()))
+
+    // Crab Jump
+    EventListener.onCast(ABILITY_CRAB_JUMP) (unit caster) ->
+        group targets = getUnitsInRangeOfLocMatchingClosure(600, caster.getPos()) (unit u) ->
+            return u.isEnemyOf(caster.getOwner()) and not u.isInvulnerable()
+        doCrabJump(caster, targets)
     
     EventListener.onCast(ABILITY_ROBINHOOD_ARROW) (unit caster) ->
         let ef = addEffect(Abilities.ballistaMissile, caster.getPos3Real().polarProject(100, caster.getFacingAngle(), angle(0)))

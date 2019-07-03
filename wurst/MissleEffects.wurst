@@ -1,5 +1,6 @@
 package MissleEffects
 import ClosureTimers
+import Knockback3
 import GameTimer
 
 // Adapted from https://github.com/island-troll-tribes/island-troll-tribes
@@ -97,3 +98,26 @@ class ClosureProjectile extends CustomProjectile
     override function onImpact()
         callback.onImpact()
         destroy callback
+
+interface BooleanCallback
+    function onImpact(boolean hitTarget)
+public function unit.attemptJumpToTarget(unit target, real speed, angle airAngle, BooleanCallback consumer)
+    unit caster = this
+    caster.setInvulnerable(true)
+    //caster.pauseEx()
+    Knockback3.add(caster, speed, caster.getPos().angleTo(target.getPos()), airAngle)
+    let ogPos = target.getPos()
+    doPeriodicallyTimed(.04, 15) (CallbackCounted cb) ->
+        if(caster.getPos().distanceTo(ogPos) < max(100, caster.getCollisionSize()))
+            consumer.onImpact(target.getPos().distanceTo(ogPos) < max(100, caster.getCollisionSize()))
+            destroy consumer
+            cb.stop()
+            //caster.unpauseEx()
+            caster.setInvulnerable(false)
+        else if(cb.isLast())
+            // something went horribly wrong here, should never miss the position
+            destroy consumer
+            print("Error: Jump missed target vector")
+            cb.stop()
+            //caster.unpauseEx()
+            caster.setInvulnerable(false)
