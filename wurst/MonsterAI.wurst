@@ -25,6 +25,7 @@ public class DethNightAI extends AbstractAIHandler
             trackOrderTime()
 
 public class CrabAI extends AbstractAIHandler
+    
     construct(unit u)
         super(u)
     override function onDiffHP(real diff)
