@@ -143,7 +143,10 @@ init
                     let reduction = 1 + u.getLevel().toReal() / 3
                     let actualPower = power / reduction
                     let movementAmount = min(u.getPos().distanceTo(cursor.getPos()) / 10, actualPower)
-                    u.setXY(u.getPos().moveTowards(cursor.getPos(), movementAmount))
+                    let newPos = u.getPos().moveTowards(cursor.getPos(), movementAmount)
+                    if(newPos.testForPathability(movementAmount / 2))
+                        u.setXY(newPos)
+
     // Clock!
     EventListener.onCast(sylarWatch) (unit caster) ->
         let lvl = caster.getAbilityLevel(sylarWatch)

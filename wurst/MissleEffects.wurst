@@ -2,6 +2,7 @@ package MissleEffects
 import ClosureTimers
 import Knockback3
 import GameTimer
+import PTQConstants
 
 // Adapted from https://github.com/island-troll-tribes/island-troll-tribes
 public interface ProjCb
@@ -101,23 +102,33 @@ class ClosureProjectile extends CustomProjectile
 
 interface BooleanCallback
     function onImpact(boolean hitTarget)
-public function unit.attemptJumpToTarget(unit target, real speed, angle airAngle, BooleanCallback consumer)
+public function unit.attemptJumpToTarget(unit target, real speed, real maxHeight, BooleanCallback consumer)
     unit caster = this
     caster.setInvulnerable(true)
-    //caster.pauseEx()
-    Knockback3.add(caster, speed, caster.getPos().angleTo(target.getPos()), airAngle)
+    caster.pauseEx()
     let ogPos = target.getPos()
-    doPeriodicallyTimed(.04, 15) (CallbackCounted cb) ->
+    PTQUtils.enableFlyingForUnit(caster)
+    let tickTime = 0.04
+    let dist = caster.getPos().distanceTo(ogPos)
+    let movementPerTick = tickTime * speed
+    let mvmentVec = caster.getPos().angleTo(ogPos).direction(movementPerTick)
+    doPeriodicallyTimed(tickTime, 15) (CallbackCounted cb) ->
+        let remainingDist = caster.getPos().distanceTo(ogPos) / dist
+        let height = Sin(remainingDist * PI) * maxHeight
+        caster.setFlyHeight(height, 0)
+        caster.setXY(caster.getPos() + mvmentVec)
         if(caster.getPos().distanceTo(ogPos) < max(100, caster.getCollisionSize()))
             consumer.onImpact(target.getPos().distanceTo(ogPos) < max(100, caster.getCollisionSize()))
             destroy consumer
             cb.stop()
-            //caster.unpauseEx()
+            caster.unpauseEx()
             caster.setInvulnerable(false)
+            caster.setFlyHeight(0, 0)
         else if(cb.isLast())
             // something went horribly wrong here, should never miss the position
             destroy consumer
             print("Error: Jump missed target vector")
             cb.stop()
-            //caster.unpauseEx()
+            caster.unpauseEx()
+            caster.setFlyHeight(0, 0)
             caster.setInvulnerable(false)

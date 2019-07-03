@@ -371,11 +371,12 @@ init
         new UnitAndAmount(POOR_SKELETON, 3)
     ), "Boss: Skeleton Robin Hood and the Poor Skeletons. He steals from the rich and gives to the poor.", true))
     waves.add(new Wave(toList(
-        new UnitAndAmount(BIG_BAD_WOLF, 1, true)
-    ), "Boss: Who's afraid of the big bad wolf? Stay away from the water, and if you have nightmares: Run!", true))
-    waves.add(new Wave(toList(
         new UnitAndAmount(GIANT_ENEMY_CRAB, 1, true)
     ), "Boss: So here's this giant enemy crab...", true))
+    waves.add(new Wave(toList(
+        new UnitAndAmount(BIG_BAD_WOLF, 1, true)
+    ), "Boss: Who's afraid of the big bad wolf? Stay away from the water, and if you have nightmares: Run!", true))
+
     getTimer().doAfter(.1) () ->
         quest q = CreateQuest()
         q.setTitle("Waves")

@@ -47,6 +47,12 @@ public function vec2.testForPathability() returns boolean
     posTestItem.setPos(vec2(0,0))
     return res
 
+public function vec2.testForPathability(real tolerance) returns boolean
+    posTestItem.setPos(this)
+    let res = posTestItem.getPos().distanceTo(this) < tolerance
+    posTestItem.setPos(vec2(0,0))
+    return res
+
 // list of units that might end up in deep water
 class Swimmer
     unit u
