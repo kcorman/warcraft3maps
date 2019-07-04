@@ -27,7 +27,7 @@ import CustomUnits
 constant int MURLOC_HEAD = 'n00O'
 constant int MEAT_WAGON = 'umtw'
 constant int ABILITY_CYCLOPS_BEAM = 'A01S'
-constant int MAX_COILS = 200
+constant int MAX_COILS = 50
 constant int ABILITY_SET_TARGET_WAY_GATE = 'A01T'
 constant SoundDefinition boneCrack = new SoundDefinition(Sounds.skeletonWhat1, false, true)
 constant SoundDefinition SOUND_MAMMOTH_CHARGE_HIT = new SoundDefinition(Sounds.rockHeavyBashFlesh2, false)
