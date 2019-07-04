@@ -33,3 +33,10 @@ init
         ..owner(caster.getOwner())
         ..origin(caster.getPos())
         ..castPoint(ABILITY_CHILD_GUN_EFFECT, lvl, OrderIds.clusterrockets, EventData.getAbilityTargetPos())
+
+    EventListener.add(EVENT_PLAYER_UNIT_SUMMON) () ->
+        let t = EventData.getSummounedUnit()
+        if (t.getTypeId() == SANTA)
+            let u = ReplaceUnitBJ(t, SANTA, bj_UNIT_STATE_METHOD_DEFAULTS)
+            u.setOwner(BadGuy, false) // For bad toys
+        
