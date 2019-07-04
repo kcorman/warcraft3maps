@@ -800,6 +800,16 @@ public constant ABILITY_PALADOUT_AURA = compiletime(ABIL_ID_GEN.next())
         ..presetCastingTime(lvl -> 0)
     setupAbilityDefinitionForPosition(def, 2)
 
+public constant ABILITY_SUMMON_WHIRLPOOL = compiletime(ABIL_ID_GEN.next())
+@compiletime function whirlpool()
+    new AbilityDefinitionHealingWardcreep(ABILITY_SUMMON_WHIRLPOOL)
+        ..setLevels(1)
+        ..presetManaCost(lvl -> 100)
+        ..presetDurationNormal(lvl -> 20)
+        ..presetCooldown(lvl -> 20) 
+        ..presetWardUnitType(lvl -> commaList(WHIRL_POOL))
+            
+
 public constant ABILITY_PALADOUT_DEVOTION = compiletime(ABIL_ID_GEN.next())
 @compiletime function paladAura0()
     let def = new AbilityDefinitionAuraDevotionCreep(ABILITY_PALADOUT_DEVOTION)
