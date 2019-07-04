@@ -1,0 +1,35 @@
+package Santa
+import ClosureEvents
+import CustomAbilities
+import GameTimer
+import ClosureTimers
+import TimerUtils
+import ClosureForGroups
+import Texttag
+import Vectors
+import GameInit
+import MissleEffects
+import Effect
+import Assets
+import OrderIds
+import HashSet
+import Lightning
+import DummyCaster
+import SoundUtils
+import Knockback3
+import AbilityUtils
+import LinkedList
+import CustomUnits
+import HashList
+import CustomSummonedUnits
+import HashMap
+import PTQConstants
+import CustomUnitIds
+
+init
+    EventListener.onCast(ABILITY_CHILD_GUN) (unit caster) ->
+        let lvl = caster.getAbilityLevel(ABILITY_CHILD_GUN)
+        new DummyCaster()
+        ..owner(caster.getOwner())
+        ..origin(caster.getPos())
+        ..castPoint(ABILITY_CHILD_GUN_EFFECT, lvl, OrderIds.clusterrockets, EventData.getAbilityTargetPos())
