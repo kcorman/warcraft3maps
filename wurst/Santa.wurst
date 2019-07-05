@@ -27,13 +27,6 @@ import PTQConstants
 import CustomUnitIds
 
 init
-    EventListener.onCast(ABILITY_CHILD_GUN) (unit caster) ->
-        let lvl = caster.getAbilityLevel(ABILITY_CHILD_GUN)
-        new DummyCaster()
-        ..owner(caster.getOwner())
-        ..origin(caster.getPos())
-        ..castPoint(ABILITY_CHILD_GUN_EFFECT, lvl, OrderIds.clusterrockets, EventData.getAbilityTargetPos())
-
     EventListener.add(EVENT_PLAYER_UNIT_SUMMON) () ->
         let t = EventData.getSummounedUnit()
         if (t.getTypeId() == SANTA)
