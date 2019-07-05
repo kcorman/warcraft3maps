@@ -215,7 +215,7 @@ public constant GIANT_ENEMY_CRAB = compiletime(UNIT_ID_GEN.next())
         ..setTintingColorBlue(255)
         ..setTintingColorRed(255)
         ..setTintingColorGreen(255)
-        ..setNormalAbilities(commaList(ABILITY_CRAB_JUMP))
+        ..setNormalAbilities(commaList(ABILITY_CRAB_JUMP, ABILITY_SUMMON_WHIRLPOOL))
 
 public constant REGULAR_GNOLL = compiletime(UNIT_ID_GEN.next())
 @compiletime function genRegGnoll()
