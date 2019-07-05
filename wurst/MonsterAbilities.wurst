@@ -295,6 +295,18 @@ init
                     let up = u.getPos()
                     u.setXY(up.polarOffset(up.angleTo(pos) - angle(4 * PI/10), 10))
                 g.destr()
+    // Ice Drop
+    EventListener.onCast(ABILITY_ICE_DROP_NEUTRAL) (unit caster) ->
+        let tg = EventData.getSpellTargetPos().toVec3()
+        let ef = addEffect("Frosty Crystal Drop.mdx", tg + vec3(0, 0, tg.getTerrainZ() + 50))
+        doAfter(1.8) ->
+            group g = getUnitsInRangeOfLocMatchingClosure(300, tg.toVec2()) (unit u) ->
+                return u.isEnemyOf(caster.getOwner()) and not u.isInvulnerable() and u.isAlive()
+            for unit u in g
+                caster.damageTarget(u, 800)
+        doAfter(3) ->
+            ef.setPos(vec2(0,0))
+            ef.destr()
     // Ghoul Jump
     EventListener.onCast(ghoulJump) (unit caster) ->
         let target = GetSpellTargetUnit()
