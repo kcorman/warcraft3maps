@@ -10,6 +10,7 @@ import Vectors
 import Effect
 import Assets
 import BasicAI
+import CustomSummonedUnits
 import OrderIds
 import HashSet
 import MonsterAI
@@ -276,6 +277,24 @@ init
             let secretWagon = ReplaceUnitBJ(GetSummonedUnit(), MEAT_WAGON, bj_UNIT_STATE_METHOD_DEFAULTS)
             secretWagon.setBaseDamage(secretWagon.getBaseDamage(0) * 2, 0)
             monsterCreated(secretWagon)
+
+    // whirl pool
+    EventListener.add(EVENT_PLAYER_UNIT_SUMMON) () ->
+        if(GetSummonedUnit().getTypeId() == WHIRL_POOL)
+            let pool = GetSummonedUnit()
+            doPeriodicallyTimed(.04, 60) (CallbackCounted cb) ->
+                if(cb.isLast())
+                    pool.kill()
+                if(not pool.isAlive())
+                    cb.stop()
+                
+                let pos = pool.getPos()
+                group g = getUnitsInRangeOfLocMatchingClosure(800, pos) (unit u) ->
+                    return u.isEnemyOf(pool.getOwner()) and not u.isInvulnerable() and not u.isType(UNIT_TYPE_STRUCTURE)
+                for unit u in g
+                    let up = u.getPos()
+                    u.setXY(up.polarOffset(up.angleTo(pos) - angle(4 * PI/10), 10))
+                g.destr()
     // Ghoul Jump
     EventListener.onCast(ghoulJump) (unit caster) ->
         let target = GetSpellTargetUnit()
