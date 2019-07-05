@@ -60,7 +60,7 @@ public constant WHIRL_POOL = compiletime(UNIT_ID_GEN.next())
 
 public constant TOY_FACTORY = compiletime(UNIT_ID_GEN.next())
 @compiletime function genToyFactory()
-	new UnitDefinition(TOY_FACTORY, UnitIds.pocketfactory)
+        new UnitDefinition(TOY_FACTORY, UnitIds.pocketfactory)
         ..setName("Toy Factory")
         ..setFoodCost(0)
         ..setUpgradesUsed("")
@@ -70,3 +70,13 @@ public constant TOY_FACTORY = compiletime(UNIT_ID_GEN.next())
         ..setTintingColorBlue(255)
         ..setTintingColorRed(255)
         ..setTintingColorGreen(255)
+
+public constant TOY_TANK = compiletime(UNIT_ID_GEN.next())
+@compiletime function genToyTank()
+        new UnitDefinition(TOY_TANK, UnitIds.rifleman)
+        ..setName("Toy Tank")
+        ..setModelFile("war3mapImported\\Tank_Jumbo.mdx")
+        ..setFoodCost(0)
+        ..setUpgradesUsed("")
+        ..setAttack1ProjectileArt(Abilities.meatwagonMissile) // @TODO: Find seige engine missile
+        ..setUnitSoundSet(Soundsets.meatwagon) // @TODO: Find seige engine sounds
