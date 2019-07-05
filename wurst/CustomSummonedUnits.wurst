@@ -75,8 +75,8 @@ public constant TOY_TANK = compiletime(UNIT_ID_GEN.next())
 @compiletime function genToyTank()
         new UnitDefinition(TOY_TANK, UnitIds.rifleman)
         ..setName("Toy Tank")
-        ..setModelFile("war3mapImported\\Tank_Jumbo.mdx")
+        ..setModelFile(Units.meatwagon1)
         ..setFoodCost(0)
         ..setUpgradesUsed("")
-        ..setAttack1ProjectileArt(Abilities.meatwagonMissile) // @TODO: Find seige engine missile
-        ..setUnitSoundSet(Soundsets.meatwagon) // @TODO: Find seige engine sounds
+        ..setAttack1ProjectileArt(Abilities.steamMissile)
+        ..setUnitSoundSet(Soundsets.steamTank)
