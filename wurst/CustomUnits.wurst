@@ -695,7 +695,7 @@ public constant SANTA = compiletime(HERO_ID_GEN.next())
         ..setStockReplenishInterval(9000)
         ..setIconGameInterface("SantaClaus256X256.blp")
         ..setModelFile("war3mapImported\\SantaClaus.mdx")
-        ..setHeroAbilities(commaList(ABILITY_CHILD_GUN))
+        ..setHeroAbilities(commaList(ABILITY_CHILD_GUN, ABILITY_TOY_FACTORY))
         ..setNormalAbilities(commaList('AInv'))
         ..setUnitSoundSet(Soundsets.heroArchMage)
 
