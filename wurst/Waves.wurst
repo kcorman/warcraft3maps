@@ -111,7 +111,7 @@ class Wave
 
     function spawn()
         currentWave = this
-        addMonsterToWave = (unit u) ->
+        addUnitToWaveCb = (unit u) ->
             actualUnits.add(u)
         currentWave.failed = false
         actualUnits = new LinkedList<unit>

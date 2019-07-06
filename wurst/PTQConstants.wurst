@@ -17,6 +17,9 @@ public int WATER_LEVEL = 5 // the terrain level of deep water on the map. Gotta 
 public real timeBetweenWaves = 3.
 public real difficultyMultplier = 1.0
 public boolean totalLossMode = true
+public MonsterCallback addUnitToWaveCb
+public MonsterCallback addUnitToAIAndWaveCb
+
 
 public function getComputerAlly(player p) returns player
     player result = BadGuy
@@ -28,6 +31,9 @@ public function getHumanPlayers()
     
 interface PredicateClosure
     function test(unit u) returns boolean
+
+interface MonsterCallback
+    function add(unit u)
 public function getUnitsInRangeOfLocMatchingClosure(real radius, vec2 pos, PredicateClosure closure) returns group
     location l = PTQUtils.vec2ToLoc(pos)
     group g = GetUnitsInRangeOfLocAll(radius, l)
@@ -53,6 +59,11 @@ public function vec2.testForPathability(real tolerance) returns boolean
     let res = posTestItem.getPos().distanceTo(this) < tolerance
     posTestItem.setPos(vec2(0,0))
     return res
+
+public function unit.addToWave()
+    addUnitToWaveCb.add(this)
+public function unit.setupAIAndAddToWave()
+    addUnitToAIAndWaveCb.add(this)
 
 // list of units that might end up in deep water
 class Swimmer

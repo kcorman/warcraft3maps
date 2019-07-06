@@ -74,8 +74,8 @@ public class GhostAI extends AbstractAIHandler
         possessedUnit.setAnimation("morph")
         BansheeFeelPain.playOnPoint(possessedUnit.getPos3Real())
         doAfter(2) () ->
-            // TODO: Seems like this doesnt make the unit selectable again. Gotta replace it
             possessedUnit = ReplaceUnitBJ(possessedUnit, possessedUnit.getTypeId(), bj_UNIT_STATE_METHOD_DEFAULTS)
+            possessedUnit.setupAIAndAddToWave()
             EventListener.add(possessedUnit, EVENT_PLAYER_UNIT_DEATH) () ->
                 u.setInvulnerable(false)
                 u.unpause()

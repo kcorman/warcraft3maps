@@ -35,12 +35,9 @@ constant SoundDefinition SOUND_MAMMOTH_CHARGE_HIT = new SoundDefinition(Sounds.r
 constant SoundDefinition SOUND_MAMMOTH_CHARGE_WINDUP = new SoundDefinition(Sounds.mammothYes1, false)
 constant SoundDefinition ATTACK_THE_CRAB = new SoundDefinition("MassiveDamage.mp3", false)
 constant SoundDefinition HERES_A_CRAB = new SoundDefinition("HeresGiantEnemyCrab.mp3", false)
-public AddMonsterToWaveCb addMonsterToWave = null
 
 interface HealthChangeCallback
     function run(real diff, boolean last) returns boolean
-interface AddMonsterToWaveCb
-    function am(unit monster)
 
 LinkedList<CoilTracker> coilList = new LinkedList<CoilTracker>
 class CoilTracker
@@ -62,7 +59,7 @@ function adjustUnitStats(unit u) returns unit
 public function monsterCreated(unit monster)
     adjustUnitStats(monster)
     // This adds the monster to the current wave. Kinda a weird tightly coupled thing
-    addMonsterToWave.am(monster)
+    monster.addToWave()
     switch(monster.getTypeId())
         case COIL_HYDRA
             monster.setVertexColor(150, 230, 150, 30)
@@ -273,6 +270,10 @@ class HpWrapper
 class VecWrapper
     vec2 pos
 init
+    // This sets up a global point where any class that depends on PTQConstants can add a monster to the wave with AI
+    addUnitToAIAndWaveCb = (unit monster) ->
+        monsterCreated(monster)
+
     // Meat Wagon Wagon
     EventListener.add(EVENT_PLAYER_UNIT_SUMMON) () ->
         if(GetSummonedUnit().getTypeId() == MEAT_WAGON)
