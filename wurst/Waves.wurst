@@ -331,6 +331,9 @@ init
         new UnitAndAmount(COIL_HYDRA, 1) // boss
     ), "Boss: Coil Hydras. Would you stop with the head slicing thing already?", true))
     waves.add(new Wave(toList(
+        new UnitAndAmount(GHOST_BOSS, 1, true)
+    ), "This ghost is extra spooky and might possess something...", true))
+    waves.add(new Wave(toList(
         new UnitAndAmount(DIRE_MAMMOTH, 2)
     )))
     waves.add(new Wave(toList(

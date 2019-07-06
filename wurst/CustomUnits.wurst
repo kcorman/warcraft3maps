@@ -6,7 +6,6 @@ import Assets
 import Soundsets
 import CustomAbilities
 import ObjectIds
-import DestructableObjEditing
 import CustomUnitIds
 import ObjectIdGenerator
 
@@ -372,6 +371,23 @@ public constant SKELETON_MAMMOTH = compiletime(UNIT_ID_GEN.next())
         ..setTintingColorGreen(255)
         ..setNormalAbilities(commaList(AbilityIds.bash1, ABILITY_RAM, ABILITY_MAMMOTH_RAISE_DED))
 
+public constant GHOST_BOSS = compiletime(UNIT_ID_GEN.next())
+@compiletime function genGhostBoss()
+	new UnitDefinition(GHOST_BOSS, UnitIds.wraith)
+        ..setName("Spooky Ghost")
+        ..setModelFile("Ghost.MDX")
+	..setUpgradesUsed("")
+        ..setHitPointsMaximumBase(6000)
+        ..setAttack1DamageBase(130)
+        ..setManaMaximum(0)
+        ..setScalingValue(1.25)
+        ..setManaRegeneration(1.)
+        ..setLevel(15)
+        ..setTintingColorBlue(150)
+        ..setTintingColorRed(255)
+        ..setTintingColorGreen(150)
+        ..setNormalAbilities(commaList(""))
+
 @compiletime function genLifeStealer()
 	new UnitDefinition(LIFE_STEALING_GHOST, UnitIds.wraith)
 		..setName("Lifestealer")
@@ -708,8 +724,11 @@ public constant STATUE_BOSS = compiletime(UNIT_ID_GEN.next())
         ..setName("Living Statue")
         ..setUnitSoundSet(Soundsets.steamTank)
         ..setScalingValue(1)
-        ..setHitPointsMaximumBase(20000)
+        ..setAttack1Range(200)
+        ..setAttack1DamageBase(400)
+        ..setHitPointsMaximumBase(10000)
         ..setDefenseBase(10)
+        ..setNormalAbilities(commaList(MONSTER_CLEAVE_100))
         ..setModelFile("Living Statue17.mdx")
 
         

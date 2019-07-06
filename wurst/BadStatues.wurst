@@ -26,19 +26,22 @@ import HashMap
 import PTQConstants
 import CustomUnits
 init
-
-    let ct = gg_rct_helperArea.getCenter()
-    LinkedList<rect> l = new LinkedList<rect>
-    l.add(gg_rct_st1)
-    l.add(gg_rct_st2)
-    l.add(gg_rct_st3)
-    for rect r in l
-        let u = createUnit(BadGuy, STATUE_BOSS, r.getCenter(), angle(0))
-        u.setFacing(u.getPos().angleTo(ct))
-        u.addAbility('Aloc')
-        u.addAbility('Avul')
-        u.pause()
-        u.setAnimation("Stand Alternate")
-        let ef = addEffect("Living StatuPedestal.mdx", u.getPos3Real())
-        ef.setYaw(u.getFacingAngle())
-    destroy l
+    doAfter(.04) () ->
+        let ct = gg_rct_helperArea.getCenter()
+        LinkedList<rect> l = new LinkedList<rect>
+        l.add(gg_rct_st1)
+        l.add(gg_rct_st2)
+        l.add(gg_rct_st3)
+        for rect r in l
+            let u = createUnit(BadGuy, STATUE_BOSS, r.getCenter(), angle(0))
+            let ang = u.getPos().angleTo(ct)
+            u.setFacing(ang)
+            u.addAbility('Aloc')
+            u.addAbility('Avul')
+            u.pause()
+            u.setAnimation("Stand Alternate")
+            // need this offset to get them to line up right
+            let offset = (ang + angle(12 * PI / 11)).toVec(100).toVec3()
+            let ef = addEffect("Living StatuPedestal.mdx", u.getPos3Real() + offset)
+            ef.setYaw(ang)
+        destroy l

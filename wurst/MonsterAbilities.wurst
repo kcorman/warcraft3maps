@@ -76,6 +76,8 @@ public function monsterCreated(unit monster)
             handleUnstoppableTank(monster)
         case LEE_HARVEY
             addAI(new HarveyAI(monster))
+        case GHOST_BOSS
+            addAI(new GhostAI(monster))
         case GIANT_ENEMY_CRAB
             HERES_A_CRAB.play()
             addAI(new CrabAI(monster))

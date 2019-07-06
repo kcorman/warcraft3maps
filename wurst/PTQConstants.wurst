@@ -29,7 +29,8 @@ public function getHumanPlayers()
 interface PredicateClosure
     function test(unit u) returns boolean
 public function getUnitsInRangeOfLocMatchingClosure(real radius, vec2 pos, PredicateClosure closure) returns group
-    group g = GetUnitsInRangeOfLocAll(radius, PTQUtils.vec2ToLoc(pos))
+    location l = PTQUtils.vec2ToLoc(pos)
+    group g = GetUnitsInRangeOfLocAll(radius, l)
     for unit u in g
         if(not closure.test(u))
             g.removeUnit(u)

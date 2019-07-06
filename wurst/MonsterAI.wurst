@@ -9,9 +9,13 @@ import ClosureEvents
 import TimerUtils
 import LinkedList
 import GameTimer
+import MissleEffects
+import SoundUtils
 import ClosureTimers
+import Sounds
 import TerrainUtils
 import OrderIds
+constant SoundDefinition BansheeFeelPain = new SoundDefinition(Sounds.bansheeYesAttack2, false)
 public class DethNightAI extends AbstractAIHandler
     construct(unit u)
         super(u)
@@ -23,6 +27,61 @@ public class DethNightAI extends AbstractAIHandler
             vec2 fleeDest = u.getPos().polarOffset(u.getFacingAngle() + angle(PI), 600)
             u.issuePointOrder("move", fleeDest)
             trackOrderTime()
+
+public class GhostAI extends AbstractAIHandler
+    boolean possessionMode = false
+    unit possessedUnit = null
+    unit potentialTarget = null
+    construct(unit u)
+        super(u)
+    override function onDiffHP(real diff)
+        if(not possessionMode and u.getHP() / u.getMaxHP() < .7)
+            print("Pssession mode activated")
+            possessionMode = true
+        
+    override function onTick()
+        if(possessionMode)
+            if(possessedUnit == null and potentialTarget == null and getTimeSinceLastOrder() > 2)
+                findATarget()
+        super.onTick()
+
+    function findATarget()
+        
+        group g = GetUnitsOfTypeIdAll(STATUE_BOSS)
+        for unit u in g
+            if(not u.isAliveTrick())
+                g.removeUnit(u)
+
+        if(not g.isEmpty())
+            potentialTarget = g.getRandomUnit()
+            u.setAnimation("spell")
+            u.pause()
+            doAfter(3) () ->
+                if(u.isAlive())
+                    u.setInvulnerable(true)
+                    ResetUnitAnimation(u)
+                    u.hide()
+                    let cp = quickProjectile(u.getPos3Real(), potentialTarget.getPos3Real() + vec3(0,0,100), 1000, 0, Abilities.possessionMissile) ->
+                        doPossessUnit()
+                    cp.getEffect().setColor(255, 255, 255)
+                    cp.getEffect().setScale(2)
+
+        g.destr()
+
+    function doPossessUnit()
+        possessedUnit = potentialTarget
+        potentialTarget = null
+        possessedUnit.setAnimation("morph")
+        BansheeFeelPain.playOnPoint(possessedUnit.getPos3Real())
+        doAfter(2) () ->
+            // TODO: Seems like this doesnt make the unit selectable again. Gotta replace it
+            possessedUnit = ReplaceUnitBJ(possessedUnit, possessedUnit.getTypeId(), bj_UNIT_STATE_METHOD_DEFAULTS)
+            EventListener.add(possessedUnit, EVENT_PLAYER_UNIT_DEATH) () ->
+                u.setInvulnerable(false)
+                u.unpause()
+                u.show()
+                u.setPos(possessedUnit.getPos())
+                possessedUnit = null
 
 public class CrabAI extends AbstractAIHandler
     

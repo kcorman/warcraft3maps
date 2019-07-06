@@ -73,7 +73,8 @@ public abstract class CustomProjectile
                 let pitch = getElapsedGameTime() * PI2 * spinSpeed
                 this.missileFx.setRoll(pitch)
 
-
+    function getEffect() returns effect
+        return this.missileFx
     function postCreation()
         missileFx.setYaw(startPos.angleTo2d(targetPos))
         this.updaterLoop = doPeriodically(ANIMATION_PERIOD) cb ->
@@ -99,6 +100,7 @@ class ClosureProjectile extends CustomProjectile
     override function onImpact()
         callback.onImpact()
         destroy callback
+
 
 interface BooleanCallback
     function onImpact(boolean hitTarget)
