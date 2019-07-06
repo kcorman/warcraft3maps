@@ -358,7 +358,7 @@ init
         new UnitAndAmount(FIRE_ELEMENTAL, 3)
     ), "Remember: Stop, drop, and roll. Or run around screaming and set your allies on fire, whichever works.", false))
     waves.add(new Wave(toList(
-        new UnitAndAmount(ICE_ELEMENTAL, 4)
+        new UnitAndAmount(ICE_ELEMENTAL, 2)
     )))
     waves.add(new Wave(toList(
         new UnitAndAmount(LEE_HARVEY, 1, true),
