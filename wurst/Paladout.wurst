@@ -51,7 +51,7 @@ init
         let duration = 3 + lvl * 2
         let dmgWrapper = new DmgWrapper()
         dmgWrapper.start = getElapsedGameTime()
-        let ef = addEffect(Abilities.voodooAuraTarget, target, "chest")
+        let ef = addEffect("Liberty.mdx", target, "chest")
         let threshold = 250
         let listener = EventListener.add(EVENT_PLAYER_UNIT_DAMAGED) () ->
             let src = GetEventDamageSource()
