@@ -634,5 +634,6 @@ init
             WaygateSetDestination(caster, tg.x, tg.y)
             WaygateActivate(caster, true)
 
+
                 
     

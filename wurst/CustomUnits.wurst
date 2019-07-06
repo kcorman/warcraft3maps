@@ -6,6 +6,7 @@ import Assets
 import Soundsets
 import CustomAbilities
 import ObjectIds
+import DestructableObjEditing
 import CustomUnitIds
 import ObjectIdGenerator
 
@@ -701,6 +702,17 @@ public constant SANTA = compiletime(HERO_ID_GEN.next())
         ..setNormalAbilities(commaList('AInv'))
         ..setUnitSoundSet(Soundsets.heroArchMage)
 
+public constant STATUE_BOSS = compiletime(UNIT_ID_GEN.next())
+@compiletime function genStatueBoss()
+        new UnitDefinition(STATUE_BOSS, UnitIds.ogrelord)
+        ..setName("Living Statue")
+        ..setUnitSoundSet(Soundsets.steamTank)
+        ..setScalingValue(1)
+        ..setHitPointsMaximumBase(20000)
+        ..setDefenseBase(10)
+        ..setModelFile("Living Statue17.mdx")
+
+        
 public constant SYLAR_LEARN_ABILITY_SHOP = compiletime(UNIT_ID_GEN.next())
 @compiletime function genLearnAbilityshop()
         setDummyUnitFields(new UnitDefinition(SYLAR_LEARN_ABILITY_SHOP, UnitIds.wisp))
@@ -712,6 +724,8 @@ public constant DUMMY_CURSOR = compiletime(UNIT_ID_GEN.next())
         ..setName("Telekenesis")
         ..setMovementType(MovementType.Fly)
         ..setUnitSoundSet(Soundsets.illidan)
+
+
         
 function setDummyUnitFields(UnitDefinition u) returns UnitDefinition
     u

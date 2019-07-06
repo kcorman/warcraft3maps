@@ -1,0 +1,44 @@
+package BadStatues
+import ClosureEvents
+import CustomAbilities
+import GameTimer
+import ClosureTimers
+import TimerUtils
+import ClosureForGroups
+import TerrainUtils
+import Vectors
+import Effect
+import Assets
+import BasicAI
+import CustomSummonedUnits
+import OrderIds
+import HashSet
+import MonsterAI
+import Lightning
+import DummyCaster
+import MissleEffects
+import SoundUtils
+import Knockback3
+import LinkedList
+import HashList
+import CustomUnitIds
+import HashMap
+import PTQConstants
+import CustomUnits
+init
+
+    let ct = gg_rct_helperArea.getCenter()
+    LinkedList<rect> l = new LinkedList<rect>
+    l.add(gg_rct_st1)
+    l.add(gg_rct_st2)
+    l.add(gg_rct_st3)
+    for rect r in l
+        let u = createUnit(BadGuy, STATUE_BOSS, r.getCenter(), angle(0))
+        u.setFacing(u.getPos().angleTo(ct))
+        u.addAbility('Aloc')
+        u.addAbility('Avul')
+        u.pause()
+        u.setAnimation("Stand Alternate")
+        let ef = addEffect("Living StatuPedestal.mdx", u.getPos3Real())
+        ef.setYaw(u.getFacingAngle())
+    destroy l
