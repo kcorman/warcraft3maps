@@ -54,8 +54,8 @@ public class GhostAI extends AbstractAIHandler
 
         if(not g.isEmpty())
             potentialTarget = g.getRandomUnit()
-            u.setAnimation("spell")
             u.pause()
+            u.setAnimation("Stand Channel")
             doAfter(3) () ->
                 if(u.isAlive())
                     u.setInvulnerable(true)
