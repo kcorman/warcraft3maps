@@ -1,0 +1,51 @@
+package Credits
+import LinkedList
+LinkedList<Credit> credits = new LinkedList<Credit>()
+
+class Credit
+    string creator
+    string thingOfficialName
+    string howItWasUsed
+    construct(string creator, string thingOfficialName, string howItWasUsed)
+        this.creator = creator
+        this.thingOfficialName = thingOfficialName
+        this.howItWasUsed = howItWasUsed
+    construct(string creator, string howItWasUsed)
+        this.creator = creator
+        this.howItWasUsed = howItWasUsed
+    function toString() returns string
+        var result = creator + ": "
+        if(thingOfficialName != null)
+            result = result + thingOfficialName + " (" + howItWasUsed + ")"
+        else
+            result = result + howItWasUsed
+        return result
+
+public function getCreditString() returns string
+    var result = "Created By: WillemTheFoe\nBuilt with WurstScript (https://wurstlang.org/)\nAll Custom Models came from Hiveworkshop\n"
+    for Credit c in credits
+        result += "\n" + c.toString()
+    return result
+init
+
+    credits.add(new Credit("WillemTheFoe", "Keeper of The Sylar"))
+    credits.add(new Credit("WillemTheFoe", "The Senate"))
+    credits.add(new Credit("WillemTheFoe", "Rabbit and Tigger"))
+    credits.add(new Credit("WillemTheFoe", "Tommy Wisearthas"))
+    credits.add(new Credit("nightelfbuilder", "Lillith Mother of Demons", "Demoness"))
+    credits.add(new Credit("Thrikodius", "Shadow Dragon", "Void Wyrm"))
+    credits.add(new Credit("Kuhneghetz", "Succorbenoth", "Devil Tower"))
+    credits.add(new Credit("kako2742",  "Skeleton Mammoth"))
+    credits.add(new Credit("Mythic", "Void Rain"))
+    credits.add(new Credit("Gluma", "Warplock Jezzail", "Rodent Artilliry"))
+    credits.add(new Credit("GolluM_KoMe", "Elephant", "Hefalumps Spell"))
+    credits.add(new Credit("HerrDave", "Russian Officer"))
+    credits.add(new Credit("Misha", "Banshee Naga"))
+    credits.add(new Credit("Mythic", "Divine Edict"))
+    credits.add(new Credit("Mythic", "Liberty", "WWUD spell effect"))
+    credits.add(new Credit("Mythic", "Void Rift", "Naga Seawitch Void Rift spell"))
+    credits.add(new Credit("WhiteDeath", "Living Statue", "Enemy wave where ghost possessess statues"))
+    credits.add(new Credit("The_Spellweaver", "Frosty Crystal Drop", "Ice elemental enemy spell"))
+    credits.add(new Credit("Burning_Dragoon5", "Ice Elemental"))
+    credits.add(new Credit("Em!", "Spooky Ghost"))
+    credits.add(new Credit("Hayate", "Santa Claus"))

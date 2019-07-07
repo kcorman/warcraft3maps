@@ -9,6 +9,7 @@ import Quest
 import SoundUtils
 import CustomUnits
 import ClosureEvents
+import Credits
 import PTQConstants
 import MonsterAbilities
 import DialogBox
@@ -207,13 +208,15 @@ function postInit()
     q.setTitle("Credits")
     q.setIcon(Icons.bTNScepterOfMastery)
     q.setRequired(false)
-    q.setDescription("Created By: WillemTheFoe\nBuilt with WurstScript (https://wurstlang.org/)\nAll Custom Models came from Hiveworkshop\nDemoness: nightelfbuilder\nShadow Dragon: Thrikodius\nSkeleton Mammoth: kako2742\nDevil Tower (Succorbenoth): Kuhneghetz\nVoid Rain (Soul Wyrm Spell): Mythic\nRodent Artilliry (Warplock Jezzail): Gluma\nElephant: GolluM_KoMe\nRussian Officer: HerrDave\nKeeper of The Sylar: WillemTheFoe\nThe Senate: WillemTheFoe\nRabbit and Tigger: WillemTheFoe\nTommy Wisearthas: WillemTheFoe\n")
+    q.setDescription(getCreditString())
     texttag t = createTTEx(gg_rct_unittrainers.getCenter().withTerrainZ(150) + vec3(0,50,0), "Purchase Builders Here", 10, colorA(255,50,50,255))
     getTimer().doAfter(300) () ->
         t.destr()
     if(CINEMATIC_ENABLED)
         doIntiialCinematic()
 function doIntiialCinematic()
+    FogMaskEnable(false)
+    FogEnable(false)
     group g = getUnitsInRangeOfLocMatchingClosure(400, THE_BANDIT.getPos()) (unit u) ->
         return not u.isType(UNIT_TYPE_STRUCTURE) and u.getOwner() == THE_BANDIT.getOwner()
     banditHelper1 = g.next()

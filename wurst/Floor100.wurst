@@ -28,6 +28,9 @@ class Floor100
     function startHellivator()
         floor100snd.playOnPoint(caster.getPos3Real())
         affectedUnits = GetUnitsInRangeOfLocAll(abilityLvl * 200.0, GetUnitLoc(caster))
+        for unit u in affectedUnits
+            if(u.isInvulnerable() or u.isHidden())
+                affectedUnits.removeUnit(u)
         hellivator = CreateUnit(caster.getOwner(), HELLIVATOR_UNIT_ID, caster.getX(), caster.getY(), 0)
         for unit u in affectedUnits
             u.hide()
@@ -56,11 +59,13 @@ class Floor100
             u.unpause()
             u.show()
             u.setInvulnerable(false)
-            if(u != caster)
+            if(not u.isEnemyOf(caster.getOwner()))
                 caster.damageTarget(u, damage)
         destroy this
     static function onCast(unit caster)
         new Floor100(caster)
+    ondestroy
+        affectedUnits.destr()
 init
     trigger t = CreateTrigger()
     t.registerAnyUnitEvent(EVENT_PLAYER_UNIT_SPELL_ENDCAST)
