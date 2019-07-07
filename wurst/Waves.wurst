@@ -329,12 +329,16 @@ init
         new UnitAndAmount(DIRE_MAMMOTH, 4)
     )))
     waves.add(new Wave(toList(
-        new UnitAndAmount(NAGA_SIREN, 2, false),
-        new UnitAndAmount(NAGA_SEAWATCH, 1, true)
-    ), "Oh no, nagas!", true))
-    waves.add(new Wave(toList(
         new UnitAndAmount(UNSTOPPABLE_TANK, 1, true) // boss
     ), "Boss: The Unstoppable Tank. Stay away from the front...", true))
+    waves.add(new Wave(toList(
+        new UnitAndAmount(NAGA_MIRMIDON, 3, false),
+        new UnitAndAmount(NAGA_ROYAL_GUARD, 1, false)
+    ), "Oh no, nagas!", false)) 
+    waves.add(new Wave(toList(
+        new UnitAndAmount(NAGA_SIREN, 2, false),
+        new UnitAndAmount(NAGA_SEAWATCH, 1, true)
+    ), "The seawitch", true)) 
     waves.add(new Wave(toList(
         new UnitAndAmount(MURLOC_BARBATUS, 2),
         new UnitAndAmount(MURLOC_DRONE, 8)

@@ -295,7 +295,7 @@ init
                     pool.kill()
                 if(not pool.isAlive())
                     cb.stop()
-                
+                pool.setFacing(pool.getFacingAngle() + angle(PI / 25))
                 let pos = pool.getPos()
                 group g = getUnitsInRangeOfLocMatchingClosure(800, pos) (unit u) ->
                     return u.isEnemyOf(pool.getOwner()) and not u.isInvulnerable() and not u.isType(UNIT_TYPE_STRUCTURE)

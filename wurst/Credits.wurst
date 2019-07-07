@@ -41,6 +41,8 @@ init
     credits.add(new Credit("GolluM_KoMe", "Elephant", "Hefalumps Spell"))
     credits.add(new Credit("HerrDave", "Russian Officer"))
     credits.add(new Credit("Misha", "Banshee Naga"))
+    credits.add(new Credit("Champara Bros", "Water Tentacle"))
+    credits.add(new Credit("Mc!", "Whirlpool"))
     credits.add(new Credit("Mythic", "Divine Edict"))
     credits.add(new Credit("Mythic", "Liberty", "WWUD spell effect"))
     credits.add(new Credit("Mythic", "Void Rift", "Naga Seawitch Void Rift spell"))
