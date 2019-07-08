@@ -33,6 +33,9 @@ constant int ABILITY_SET_TARGET_WAY_GATE = 'A01T'
 constant SoundDefinition boneCrack = new SoundDefinition(Sounds.skeletonWhat1, false, true)
 constant SoundDefinition SOUND_MAMMOTH_CHARGE_HIT = new SoundDefinition(Sounds.rockHeavyBashFlesh2, false)
 constant SoundDefinition SOUND_MAMMOTH_CHARGE_WINDUP = new SoundDefinition(Sounds.mammothYes1, false)
+constant SoundDefinition SOUND_VOID_RIFT_BIRTH = new SoundDefinition(Sounds.darkSummoningLaunch1, false)
+
+constant SoundDefinition SOUND_FEAR = new SoundDefinition("fear.mp3", false)
 constant SoundDefinition ATTACK_THE_CRAB = new SoundDefinition("MassiveDamage.mp3", false)
 constant SoundDefinition HERES_A_CRAB = new SoundDefinition("HeresGiantEnemyCrab.mp3", false)
 
@@ -67,6 +70,8 @@ public function monsterCreated(unit monster)
                 createHydraCoil(monster, 1)
         case CRYPT_FREND
             addAI(new CryptFrendAI(monster))
+        case NAGA_SEAWATCH
+            addAI(new NagaWitchAI(monster))
         case DETH_NIGHT
             addAI(new DethNightAI(monster))
         case UNSTOPPABLE_TANK
@@ -290,7 +295,7 @@ init
                     pool.kill()
                 if(not pool.isAlive())
                     cb.stop()
-                
+                pool.setFacing(pool.getFacingAngle() + angle(PI / 25))
                 let pos = pool.getPos()
                 group g = getUnitsInRangeOfLocMatchingClosure(800, pos) (unit u) ->
                     return u.isEnemyOf(pool.getOwner()) and not u.isInvulnerable() and not u.isType(UNIT_TYPE_STRUCTURE)
@@ -298,6 +303,30 @@ init
                     let up = u.getPos()
                     u.setXY(up.polarOffset(up.angleTo(pos) - angle(4 * PI/10), 10))
                 g.destr()
+    // naga ghost fear
+    EventListener.onCast(ABILITY_FEAR_SINGLE_TARGET) (unit caster) ->
+        let duration = 4.0
+        let target = EventData.getSpellTargetUnit()
+        let ef = addEffect(Abilities.howlTarget, target, "overhead")
+        SOUND_FEAR.playOnPoint(target.getPos3Real())
+        doPeriodicallyTimed(.5, duration) (CallbackCounted cb) ->
+            target.issuePointOrder("move", target.getPos().polarOffset(angle(GetRandomReal(0, 360)), 400))
+            if(cb.isLast())
+                ef.destr()
+    // naga witch void rift
+    EventListener.onCast(ABILITY_SUMMON_VOID_RIFT) (unit caster) ->
+        let duration = 30.0
+        let target = EventData.getSpellTargetPos()
+        let ef = addEffect("Void Rift Purple.mdx", target)
+        SOUND_VOID_RIFT_BIRTH.playOnPoint(target.toVec3())
+        doPeriodicallyTimed(.25, duration) (CallbackCounted cb) ->
+            group dmged = getUnitsInRangeOfLocMatchingClosure(200, target) (unit u) ->
+                return u.isEnemyOf(caster.getOwner()) and not u.isInvulnerable()
+            for unit u in dmged
+                caster.damageTarget(u, 75)
+            dmged.destr()
+            if(cb.isLast())
+                ef.destr()
     // Ice Drop
     EventListener.onCast(ABILITY_ICE_DROP_NEUTRAL) (unit caster) ->
         let tg = EventData.getSpellTargetPos().toVec3()

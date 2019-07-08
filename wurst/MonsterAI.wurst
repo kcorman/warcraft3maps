@@ -16,6 +16,9 @@ import Sounds
 import TerrainUtils
 import OrderIds
 constant SoundDefinition BansheeFeelPain = new SoundDefinition(Sounds.bansheeYesAttack2, false)
+constant SoundDefinition nagaGhostSpawn = new SoundDefinition(Sounds.bansheeDeath, false)
+constant SoundDefinition nagaGetHealed = new SoundDefinition(Sounds.ladyVashjWhat4, false)
+constant SoundDefinition nagaSacrifice = new SoundDefinition(Sounds.nagaSirenWhat1, false)
 public class DethNightAI extends AbstractAIHandler
     construct(unit u)
         super(u)
@@ -298,3 +301,67 @@ public class AeroBearAI extends AbstractAIHandler
                 u.setXY(u.getPos() + vecMovement)
                 ef.setPos(u.getPos())
                 ef.setRoll(getElapsedGameTime() * PI2 * 2)
+
+
+public class NagaWitchAI extends AbstractAIHandler
+    let maxRange = 1500.0
+    boolean healInProg = false
+    construct(unit u)
+        super(u)
+
+    override function onTick()
+        super.onTick()
+        if(getTimeSinceLastOrder() > 1)
+            checkForLowHPNagas()
+
+    override function onDiffHP(real diff)
+        if(u.getHP() < u.getMaxHP() * .4 and not healInProg)
+            getHealed()
+    
+    function getHealed()
+        group g = getUnitsInRangeOfLocMatchingClosure(maxRange, u.getPos()) (unit test) ->
+            return test.getTypeId() == NAGA_SIREN and test.isAliveTrick() and test.getOwner() == u.getOwner() and not test.isInvulnerable()
+        if(not g.isEmpty())
+            let healer = g.getRandomUnit()
+            healer.setFacing(healer.getPos().angleTo(u.getPos()))
+            healer.pauseEx()
+            healer.setAnimation("spell")
+            healInProg = true
+            nagaGetHealed.playOnPoint(u.getPos3Real())
+            quickProjectile(healer.getPos3Real(), u.getPos3Real(), 1000, 1000, Abilities.waterElementalMissile) () ->
+                flashEffect(Abilities.healTarget2, u, "overhead")
+                u.setHP(u.getMaxHP())
+                healer.unpauseEx()
+                ResetUnitAnimation(healer)
+                healInProg = false
+        g.destr()
+    function checkForLowHPNagas()
+        trackOrderTime()
+        // every second, check for nearby nagas near death
+        group g = getUnitsInRangeOfLocMatchingClosure(maxRange, u.getPos()) (unit test) ->
+            boolean result = false
+            if(test.getTypeId() == NAGA_SIREN and test.isAliveTrick() and not test.isInvulnerable())
+                result= (test.getHP() / test.getMaxHP()) < .3
+            return result
+        if(not g.isEmpty())
+            doKill(g.getRandomUnit())
+        g.destr()
+    function doKill(unit target)
+        target.pause()
+        target.setInvulnerable(true)
+        let ef = addEffect(Abilities.manaDrainTarget, target, "neck")
+        PTQUtils.enableFlyingForUnit(target)
+        target.setFlyHeight(300, 100)
+        nagaSacrifice.playOnPoint(target.getPos3Real())
+        let lt = addLightning(LIGHTNING_FINGER_OF_DEATH, true, u.getPos3with(1000), target.getPos3with(1000))
+        doPeriodicallyTimed(.10, 3) (CallbackCounted cb) ->
+            lt.move(true, u.getPos3with(1000), target.getPos3with(1000))
+            let pos = u.getPos()
+            if(cb.isLast())
+                target.setInvulnerable(false)
+                target.explode()
+                ef.destr()
+                lt.destr()
+                doAfter(1) () ->
+                    nagaGhostSpawn.playOnPoint(pos.toVec3())
+                    createUnit(u.getOwner(), NAGA_SIREN_GHOST, pos, u.getFacingAngle())..setupAIAndAddToWave()
