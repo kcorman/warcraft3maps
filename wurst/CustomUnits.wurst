@@ -319,6 +319,13 @@ public constant SCARY_BANDIT = compiletime(UNIT_ID_GEN.next())
         ..setName("Arthur Bandit")
         ..setModelFile("ScaryBandit.mdx")
 
+public constant MIKE_TYSON = compiletime(UNIT_ID_GEN.next())
+@compiletime function genMike()
+        new UnitDefinition(MIKE_TYSON, UnitIds.bandit)
+        ..setName("Kid Dynamite")
+        ..setScalingValue(2)
+        ..setModelFile("MikeTyson.mdx")
+
 public constant REGULAR_GNOLL = compiletime(UNIT_ID_GEN.next())
 @compiletime function genRegGnoll()
 	new UnitDefinition(REGULAR_GNOLL, UnitIds.gnoll1)
