@@ -69,7 +69,7 @@ init
             u.pause()
             let timePerCount = 2.7 / 4
             let totalTime = timePerCount * 10 // the sound clip is 4 counts per 2.7 seconds
-            let percentToGetUp = .02 + 0.04 * u.getAbilityLevel(ABILITY_GET_BACK_UP)
+            let percentToGetUp = .06 + 0.04 * u.getAbilityLevel(ABILITY_GET_BACK_UP)
             SOUND_MIKE_KNOCKED_DOWN.playOnPoint(u.getPos3Real())
             doAfter(1) () ->
                 let countingSound = SOUND_MIKE_COUNT.playOnPoint(u.getPos3Real(), totalTime.toInt() + 2)
@@ -78,12 +78,12 @@ init
                     if(cb.getCount() < 9 and GetRandomReal(0, 1) <= percentToGetUp)
                         countingSound.snd.stop(false, false)
                         SOUND_MIKE_GET_UP.playOnPoint(u.getPos3Real())
+                        cb.stop()
                         doAfter(1.5) () ->
                             ResetUnitAnimation(u)
                             u.unpause()
                             u.setTimeScale(1)
                             u.setInvulnerable(false)
-                            cb.stop()
                     else if(cb.isLast())
                         SOUND_MIKE_DED.play()
                         countingSound.snd.stop(false, false)
