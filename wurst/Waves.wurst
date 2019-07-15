@@ -13,9 +13,11 @@ import SoundUtils
 import UnitTrainers
 import Abilities
 import Units
+import CustomEvents
 import QuestItem
 import CustomUnitIds
 import WeatherEffects
+import MikeTyson
 import Weather
 import CustomUnits
 constant int NUM_WAVES = 13
@@ -141,6 +143,7 @@ class Wave
 
 
             if allDead
+                fireCustomEvent(CUSTOM_EVENT_MATCH_END)
                 if(failed)
                     print("You lost. Will restart from three waves ago.")
                     currentWaveIndex -= 3

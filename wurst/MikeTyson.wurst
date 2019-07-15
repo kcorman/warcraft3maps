@@ -9,6 +9,8 @@ import Texttag
 import Vectors
 import GameInit
 import MissleEffects
+import CustomEvents
+import Wrappers
 import Effect
 import Assets
 import OrderIds
@@ -32,24 +34,112 @@ let SOUND_MIKE_KNOCKED_DOWN = new SoundDefinition("MikeHitTheGround.mp3", false)
 let SOUND_MIKE_COUNT = new SoundDefinition("MikeCounting1.mp3", true)
 let SOUND_MIKE_GET_UP = new SoundDefinition("MikeGetsUp.mp3", false)
 let SOUND_MIKE_DED = new SoundDefinition("MikeDed.mp3", false)
+let SOUND_BLOCK = new SoundDefinition("MikeBlockSound.mp3", false)
+let SOUND_COUNTER_PUNCH = new SoundDefinition("CounterPunch.mp3", false)
 
-HashMap<unit, int> counters = new HashMap<unit, int>
-HashSet<unit> unitsThatCantRevive = new HashSet<unit>
-function getCount(unit u) returns int
-    if(counters.has(u))
-        return counters.get(u)
+function waveEnd()
+
+HashMap<unit, int> punchCounters = new HashMap<unit, int>
+HashMap<unit, int> reviveCounters = new HashMap<unit, int>
+IterableMap<unit, UnitRevive> revivingUnits = new IterableMap<unit, UnitRevive>
+
+function resetRevivingUnits()
+    print("Checking for reviving units")
+    for entry in revivingUnits
+        revivingUnits.get(entry).onMatchEnd()
+
+
+
+function getPunchCount(unit u) returns int
+    if(punchCounters.has(u))
+        return punchCounters.get(u)
     return 0
 
-function incrCount(unit u)
-    counters.put(u, getCount(u) + 1)
+function incrPunchCount(unit u)
+    punchCounters.put(u, getPunchCount(u) + 1)
 
+function getReviveCount(unit u) returns int
+    if(reviveCounters.has(u))
+        return reviveCounters.get(u)
+    return 0
+
+function setReviveCount(unit u, int count)
+    reviveCounters.put(u, count)
+
+class UnitRevive
+    unit u
+    int matchReviveCount
+    boolean currentlyReviving = false
+    boolean matchEnded = false
+
+    construct(unit u)
+        this.u = u
+        matchReviveCount = 0
+
+    function onMatchEnd()
+        matchReviveCount = 0
+        if(currentlyReviving)
+            matchEnded = true
+    function onDeath()
+        if(currentlyReviving)
+            return
+        currentlyReviving = true
+        matchReviveCount+=1
+        u.revive(u.getPos(), false)
+        u.setAnimation("Decay Flesh")
+        u.setTimeScale(.10)
+        u.setInvulnerable(true)
+        u.pause()
+        let timePerCount = 2.7 / 4
+        let totalTime = timePerCount * 10 // the sound clip is 4 counts per 2.7 seconds
+        let percentToGetUp = (.08 + 0.06 * u.getAbilityLevel(ABILITY_GET_BACK_UP)) / matchReviveCount
+        SOUND_MIKE_KNOCKED_DOWN.playOnPoint(u.getPos3Real())
+        doAfter(1) () ->
+            if(not matchEnded and matchReviveCount >= 3)
+                tko()
+            else
+                let countingSound = SOUND_MIKE_COUNT.playOnPoint(u.getPos3Real(), totalTime.toInt() + 2)
+                doPeriodicallyCounted(timePerCount, 10) (CallbackCounted cb) ->
+                    createTTEx(u.getPos3Real(), vec2(0, .03), (11 - cb.getCount()).toString(), 15, timePerCount, colorA(255, 255,255,255))
+                    if(matchEnded or (cb.getCount() < 9 and GetRandomReal(0, 1) <= percentToGetUp))
+                        countingSound.snd.stop(false, false)
+                        SOUND_MIKE_GET_UP.playOnPoint(u.getPos3Real())
+                        cb.stop()
+                        doAfter(1.5) () ->
+                            reset()
+                    else if(cb.isLast())
+                        SOUND_MIKE_DED.playOnPoint(u.getPos3Real())
+                        countingSound.snd.stop(false, false)
+                        createTTEx(u.getPos3Real(), vec2(0, .03), "KO", 15, 1, colorA(255, 255,255,255))
+                        u.setInvulnerable(false)
+                        u.kill()
+                        doAfter(2) () ->
+                            reset()
+
+
+    function reset()
+        ResetUnitAnimation(u)
+        u.unpause()
+        matchEnded = false
+        u.setTimeScale(1)
+        u.setInvulnerable(false)
+        currentlyReviving = false
+
+    function tko()
+        setReviveCount(u, 0)
+        SOUND_MIKE_DED.playOnPoint(u.getPos3Real())                    
+        createTTEx(u.getPos3Real(), vec2(0, .03), "TKO", 15, 1, colorA(255, 255,255,255))
+        u.kill()
+        doAfter(2) () ->
+            reset()
 init
+        
     EventListener.add(EVENT_PLAYER_UNIT_ATTACKED) () ->
         if(EventData.getAttackerUnit().hasAbility(ABILITY_DYNAMITE_PUNCH))
             let attacker = EventData.getAttackerUnit()
             let attacked = GetAttackedUnitBJ()
-            incrCount(attacker)
-            let count = (getCount(attacker) % 3).toInt()
+            incrPunchCount(attacker)
+            let count = (getPunchCount(attacker) % 3).toInt()
             if(count == 0)
                 SOUND_DYNAMITE_PUNCH.playOnPoint(attacker.getPos3Real())
                 attacker.setVertexColor(colorA(100, 255, 255, 255))
@@ -59,40 +149,56 @@ init
                     if(not attacked.isAliveTrick())
                         SOUND_KNOCKOUT.playOnPoint(attacker.getPos3Real())
                         Knockback3.add(attacked, 800, attacker.getFacingAngle(), angle(PI/4))
-    EventListener.add(EVENT_PLAYER_UNIT_DEATH) () ->
-        if(EventData.getDyingUnit().hasAbility(ABILITY_GET_BACK_UP) and not unitsThatCantRevive.has(EventData.getDyingUnit()))
-            let u = EventData.getDyingUnit()
-            u.revive(u.getPos(), false)
-            u.setAnimation("Decay Flesh")
-            u.setTimeScale(.10)
-            u.setInvulnerable(true)
-            u.pause()
-            let timePerCount = 2.7 / 4
-            let totalTime = timePerCount * 10 // the sound clip is 4 counts per 2.7 seconds
-            let percentToGetUp = .06 + 0.04 * u.getAbilityLevel(ABILITY_GET_BACK_UP)
-            SOUND_MIKE_KNOCKED_DOWN.playOnPoint(u.getPos3Real())
-            doAfter(1) () ->
-                let countingSound = SOUND_MIKE_COUNT.playOnPoint(u.getPos3Real(), totalTime.toInt() + 2)
-                doPeriodicallyCounted(timePerCount, 10) (CallbackCounted cb) ->
-                    createTTEx(u.getPos3Real(), vec2(0, .03), (11 - cb.getCount()).toString(), 10, timePerCount, colorA(255, 255,255,255))
-                    if(cb.getCount() < 9 and GetRandomReal(0, 1) <= percentToGetUp)
-                        countingSound.snd.stop(false, false)
-                        SOUND_MIKE_GET_UP.playOnPoint(u.getPos3Real())
-                        cb.stop()
-                        doAfter(1.5) () ->
-                            ResetUnitAnimation(u)
-                            u.unpause()
-                            u.setTimeScale(1)
-                            u.setInvulnerable(false)
-                    else if(cb.isLast())
-                        SOUND_MIKE_DED.play()
-                        countingSound.snd.stop(false, false)
-                        u.setInvulnerable(false)
-                        unitsThatCantRevive.add(u)
-                        u.kill()
-                        doAfter(3) () ->
-                            unitsThatCantRevive.remove(u)
-                            ResetUnitAnimation(u)
-                            u.unpause()
-                            u.setTimeScale(1)
 
+    EventListener.onCast(ABILITY_JAB_CITY) (unit caster) ->
+        let lvl = caster.getAbilityLevel(ABILITY_JAB_CITY)
+        let target = EventData.getSpellTargetUnit()
+        let duration = 5.0
+        new DummyCaster()
+            ..owner(caster.getOwner())
+            ..origin(caster.getPos())
+            ..castTarget(ABILITY_JAB_CITY_EFFECT, lvl, OrderIds.bloodlust, caster)
+        doPeriodicallyTimed(.15, duration) (CallbackCounted cb) ->
+            if(target.isAlive())
+                caster.issueTargetOrder("attack", target)
+            else
+                cb.stop()
+
+        
+    EventListener.add(EVENT_PLAYER_UNIT_DEATH) () ->
+        if(EventData.getDyingUnit().hasAbility(ABILITY_GET_BACK_UP))
+            let u = EventData.getDyingUnit()
+            if(revivingUnits.has(u))
+                revivingUnits.get(u).onDeath()
+            else
+                let revive = new UnitRevive(u)
+                revivingUnits.put(u, revive)
+                revive.onDeath()
+    EventListener.onCast(ABILITY_BLOCK) (unit caster) ->
+        let lvl = caster.getAbilityLevel(ABILITY_BLOCK)
+        let mitigateAmount = .05 + lvl * .15
+        let returnedDamageFactor = .5
+        let dmg = new RealWrapper()
+        let listener = EventListener.add(EVENT_PLAYER_UNIT_DAMAGING) () ->
+            if(EventData.getDamageTarget() == caster)
+                let mitigated = EventData.getEventDamage() * mitigateAmount
+                dmg.val += mitigated * returnedDamageFactor
+                SOUND_BLOCK.playOnPoint(caster.getPos3Real())
+                BlzSetEventDamage(EventData.getEventDamage() - mitigated)
+        
+        doAfter(5) () ->
+            destroy listener
+            if(caster.isAlive() and dmg.val > 0)
+                caster.setAnimation("Spell Slam")
+                group dmgGrp = getUnitsInRangeOfLocMatchingClosure(250, caster.getPos()) (unit u) ->
+                    return u.getOwner().isEnemyOf(caster.getOwner()) and not u.isInvulnerable()
+                for unit u in dmgGrp
+                    caster.damageTarget(u, dmg.val)
+                    flashEffect(Abilities.flakTarget, u, "chest")
+                dmgGrp.destr()
+                doAfter(.7) () ->
+                    ResetUnitAnimation(caster)
+                SOUND_COUNTER_PUNCH.playOnPoint(caster.getPos3Real())
+            destroy dmg
+    registerCustomEventHandler(CUSTOM_EVENT_MATCH_END) () ->
+        resetRevivingUnits()

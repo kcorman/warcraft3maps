@@ -1,0 +1,26 @@
+package CustomEvents
+import LinkedList
+import HashMap
+public constant CustomEventId CUSTOM_EVENT_MATCH_END = new CustomEventId()
+
+HashMap<CustomEventId, LinkedList<EventHandler>> handlerMap = new HashMap<CustomEventId, LinkedList<EventHandler>>
+class CustomEventId
+
+interface EventHandler
+    function run()
+
+
+public function registerCustomEventHandler(CustomEventId eventId, EventHandler handler)
+    LinkedList<EventHandler> handlers
+    if(handlerMap.has(eventId))
+        handlers = handlerMap.get(eventId)
+    else
+        handlers = new LinkedList<EventHandler>
+        handlerMap.put(eventId, handlers)
+    handlers.add(handler)
+
+public function fireCustomEvent(CustomEventId eventId)
+    if(handlerMap.has(eventId))
+        let list = handlerMap.get(eventId)
+        for handler in list
+            handler.run()

@@ -1,0 +1,7 @@
+package Wrappers
+
+public class RealWrapper
+    real val
+
+public class IntWrapper
+    int val

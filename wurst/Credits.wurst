@@ -32,7 +32,7 @@ init
     credits.add(new Credit("WillemTheFoe", "The Senate"))
     credits.add(new Credit("WillemTheFoe", "Rabbit and Tigger"))
     credits.add(new Credit("WillemTheFoe", "Tommy Wisearthas"))
-    credits.add(new Credit("nightelfbuilder", "Lillith Mother of Demons", "Demoness"))
+    credits.add(new Credit("dickxunder", "Lillith Mother of Demons", "Demoness"))
     credits.add(new Credit("Thrikodius", "Shadow Dragon", "Void Wyrm"))
     credits.add(new Credit("Kuhneghetz", "Succorbenoth", "Devil Tower"))
     credits.add(new Credit("kako2742",  "Skeleton Mammoth"))
