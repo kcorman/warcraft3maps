@@ -1,0 +1,32 @@
+package SillyRevenant
+import ClosureEvents
+import CustomAbilities
+import GameTimer
+import ClosureTimers
+import TimerUtils
+import ClosureForGroups
+import Texttag
+import Vectors
+import Destructable
+import Effect
+import Assets
+import OrderIds
+import HashSet
+import Lightning
+import DummyCaster
+import Knockback3
+import AbilityUtils
+import LinkedList
+import CustomUnits
+import MissleEffects
+import HashList
+import HashMap
+import PTQConstants
+
+init
+    EventListener.onCast(ABILITY_DR_HOUSE) (unit caster) ->
+        let target = EventData.getAbilityTargetPos()
+        let lvl = caster.getAbilityLevel(ABILITY_DR_HOUSE)
+        let proj = quickProjectile(caster.getPos3Real(), target.toVec3() + vec3(0,0,target.getTerrainZ()), 800, 3000, Buildings.cityBuildingSmall0_0) () ->
+            TerrainDeformCrater(target.x, target.y, (90 + lvl * 100).toReal(), 75, 1000, false)
+        proj.getEffect().setScale(.5 + lvl * .5)
