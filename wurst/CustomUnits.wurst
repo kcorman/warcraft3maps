@@ -862,7 +862,7 @@ public constant SILLY_REVENANT = compiletime(HERO_ID_GEN.next())
         ..setStockReplenishInterval(9000)
         ..setIconGameInterface(Icons.bTNDeepLordRevenant)
         ..setModelFile(Units.revenant1)
-        ..setHeroAbilities(commaList(ABILITY_DR_HOUSE, ABILITY_TURTLE_HAT, ABILITY_SILLY_ARTILLERY))
+        ..setHeroAbilities(commaList(ABILITY_DR_HOUSE, ABILITY_TURTLE_HAT, ABILITY_SILLY_ARTILLERY, ABILITY_SHREK_STAMPEDE))
         ..setNormalAbilities(commaList('AInv'))
         ..setUnitSoundSet(Soundsets.revenant)
 
