@@ -36,6 +36,7 @@ let SOUND_MIKE_GET_UP = new SoundDefinition("MikeGetsUp.mp3", false)
 let SOUND_MIKE_DED = new SoundDefinition("MikeDed.mp3", false)
 let SOUND_BLOCK = new SoundDefinition("MikeBlockSound.mp3", false)
 let SOUND_COUNTER_PUNCH = new SoundDefinition("CounterPunch.mp3", false)
+let SOUND_BITE = new SoundDefinition("MikeBite.mp3", false)
 
 function waveEnd()
 
@@ -44,7 +45,6 @@ HashMap<unit, int> reviveCounters = new HashMap<unit, int>
 IterableMap<unit, UnitRevive> revivingUnits = new IterableMap<unit, UnitRevive>
 
 function resetRevivingUnits()
-    print("Checking for reviving units")
     for entry in revivingUnits
         revivingUnits.get(entry).onMatchEnd()
 
@@ -92,7 +92,7 @@ class UnitRevive
         u.pause()
         let timePerCount = 2.7 / 4
         let totalTime = timePerCount * 10 // the sound clip is 4 counts per 2.7 seconds
-        let percentToGetUp = (.08 + 0.06 * u.getAbilityLevel(ABILITY_GET_BACK_UP)) / matchReviveCount
+        let percentToGetUp = (.10 + 0.06 * u.getAbilityLevel(ABILITY_GET_BACK_UP)) / matchReviveCount
         SOUND_MIKE_KNOCKED_DOWN.playOnPoint(u.getPos3Real())
         doAfter(1) () ->
             if(not matchEnded and matchReviveCount >= 3)
@@ -200,5 +200,36 @@ init
                     ResetUnitAnimation(caster)
                 SOUND_COUNTER_PUNCH.playOnPoint(caster.getPos3Real())
             destroy dmg
+    EventListener.add(EVENT_PLAYER_UNIT_SPELL_CAST) () ->
+        if(GetSpellAbilityId() == ABILITY_BITE_OFF_EAR)
+            let caster = EventData.getSpellAbilityUnit()
+            if(caster.getHP() / caster.getMaxHP() > .75)
+                caster.issueImmediateOrder("stop")
+                print("You must have less than 75% of your max health to use this ability")
+    /*EventListener.add(EVENT_PLAYER_UNIT_SPELL_CAST) () ->
+        if(GetSpellAbilityId() == ABILITY_BITfE_OFF_EAR)
+            let tg = EventData.getSpellTargetUnit()
+            let caster = EventData.getSpellAbilityUnit()
+            let normalizedFacing = tg.getFacingAngle() //+ angle(PI/2)
+            let angleTo = caster.getPos().angleTo(tg.getPos())
+            let diff = (normalizedFacing.degrees() - angleTo.degrees()).abs()
+            if( diff > 75 and diff < 125)
+                // do nothing
+            else
+                print("Angle check failed, diff is " + diff.toString() + ", facing = " + normalizedFacing.degrees().toString() + ", angleTo = " + angleTo.degrees().toString())
+                caster.issueImmediateOrder("stop")
+                print("You must be standing at a 90 degree angle to the target to bite off its ear")*/
+    EventListener.onCast(ABILITY_BITE_OFF_EAR) (unit caster) ->
+        let lvl = caster.getAbilityLevel(ABILITY_BITE_OFF_EAR)
+        let target = EventData.getSpellTargetUnit()
+        let missingHP = caster.getMaxHP() - caster.getHP()
+        let count = 10
+        let dmg = (missingHP * lvl) / count
+        let healing = dmg / 3
+        SOUND_BITE.playOnPoint(caster.getPos3Real())
+        doPeriodicallyCounted(1, count) (CallbackCounted cb) ->
+            flashEffect(Objects.battrollBlood, target, "head")
+            caster.damageTarget(target, dmg)
+            caster.setHP(caster.getHP() + healing)
     registerCustomEventHandler(CUSTOM_EVENT_MATCH_END) () ->
         resetRevivingUnits()

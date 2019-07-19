@@ -10,7 +10,7 @@ constant player DEBUG_PLAYER = Player(0)
 init
     var u = createUnit(DEBUG_PLAYER, SCARY_BANDIT, DEBUG_SPAWN_UNIT_POS, angle(0))
     u = createUnit(DEBUG_PLAYER, MIKE_TYSON, DEBUG_SPAWN_UNIT_POS, angle(0))
-    u.setLevel(5, true)
+    u.setLevel(6, true)
 
     //var u = createUnit(DEBUG_PLAYER, SYLAR, DEBUG_SPAWN_UNIT_POS, angle(0))
     u = createUnit(DEBUG_PLAYER, SILLY_REVENANT, DEBUG_SPAWN_UNIT_POS, angle(0))
