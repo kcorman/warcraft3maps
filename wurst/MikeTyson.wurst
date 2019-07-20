@@ -205,7 +205,7 @@ init
             let caster = EventData.getSpellAbilityUnit()
             if(caster.getHP() / caster.getMaxHP() > .75)
                 caster.issueImmediateOrder("stop")
-                print("You must have less than 75% of your max health to use this ability")
+                printTimedToPlayer("You must have less than 75% of your max health to use this ability", 5, caster.getOwner())
     /*EventListener.add(EVENT_PLAYER_UNIT_SPELL_CAST) () ->
         if(GetSpellAbilityId() == ABILITY_BITfE_OFF_EAR)
             let tg = EventData.getSpellTargetUnit()

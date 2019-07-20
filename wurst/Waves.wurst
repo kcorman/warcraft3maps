@@ -364,7 +364,8 @@ init
         new UnitAndAmount(FIRE_ELEMENTAL, 2)
     ), "Remember: Stop, drop, and roll. Or run around screaming and set your allies on fire, whichever works.", false))
     waves.add(new Wave(toList(
-        new UnitAndAmount(ICE_ELEMENTAL, 2)
+        new UnitAndAmount(ICE_ELEMENTAL, 2),
+        new UnitAndAmount(FIRE_ELEMENTAL, 2)
     )))
     waves.add(new Wave(toList(
         new UnitAndAmount(LEE_HARVEY, 1, true),
@@ -390,6 +391,14 @@ init
     waves.add(new Wave(toList(
         new UnitAndAmount(BIG_BAD_WOLF, 1, true)
     ), "Boss: Who's afraid of the big bad wolf? Stay away from the water, and if you have nightmares: Run!", true))
+    waves.add(new Wave(toList(
+        new UnitAndAmount(ICE_ELEMENTAL, 4),
+        new UnitAndAmount(FIRE_ELEMENTAL, 4)
+    )))
+    waves.add(new Wave(toList(
+        new UnitAndAmount(CLOCKWORK_ALEX, 1, true),
+        new UnitAndAmount(CLOCKWORK_DROOG, 3, true)
+    ), "Final Boss: A Clockwork Ownage", true))
 
     getTimer().doAfter(.1) () ->
         quest q = CreateQuest()

@@ -1,0 +1,77 @@
+package ClockworkOwnage
+import ClosureEvents
+import CustomAbilities
+import GameTimer
+import ClosureTimers
+import TimerUtils
+import ClosureForGroups
+import Texttag
+import Vectors
+import Destructable
+import Effect
+import Assets
+import OrderIds
+import HashSet
+import Lightning
+import DummyCaster
+import Knockback3
+import AbilityUtils
+import SoundUtils
+import LinkedList
+import CustomUnits
+import MissleEffects
+import HashList
+import HashMap
+import PTQConstants
+import Sound
+let SOUND_SURPRISE_VISIT = new SoundDefinition("Sounds\\SurpriseVisit.mp3", false)
+let SOUND_FILTHY_OLD_SYKA = new SoundDefinition("Sounds\\FilythOldSyka.mp3", false)
+var lastAttacked = getElapsedGameTime()
+init
+    EventListener.onCast(ABILITY_SURPRISE_VISIT) (unit caster) ->
+        
+        group potentialTargets = getUnitsInRangeOfLocMatchingClosure(1500, caster.getPos()) (unit u) ->
+            return u.isAlive() and not u.isInvulnerable() and u.isType(UNIT_TYPE_HERO)
+        if(not potentialTargets.isEmpty())
+            let target = potentialTargets.getRandomUnit()
+            potentialTargets.destr()
+            SOUND_SURPRISE_VISIT.play()
+            group attackers = getUnitsInRangeOfLocMatchingClosure(1200, caster.getPos()) (unit u) ->
+                return u == caster or (u.isAlive() and u.getTypeId() == CLOCKWORK_DROOG and not u.getOwner().isEnemyOf(caster.getOwner()))
+            for unit attacker in attackers
+                flashEffect(Abilities.polyMorphTarget, attacker.getPos3Real() + vec3(0,0,100))
+                attacker.hide()
+                attacker.pause()
+                attacker.setInvulnerable(true)
+            doAfter(9) () ->
+                for unit attacker in attackers
+                    attacker.unpause()
+                    attacker.show()
+                    attacker.setInvulnerable(false)
+                    attacker.setPos(target.getPos() + GetRandomReal(0, PI2).asAngleRadians().toVec(150))
+                    SetUnitFacingToFaceUnitTimed(attacker, target, 0)
+                    attacker.issueTargetOrder("attack", target)
+                attackers.destr()
+                target.pause()
+                let ef = addEffect(Abilities.stasisTotemTarget, target, "overhead")
+                doAfter(2) () ->
+                    target.unpause()
+                    ef.destr()
+    EventListener.add(EVENT_PLAYER_UNIT_ATTACKED) () ->
+        if(EventData.getTriggerUnit().getTypeId() == CLOCKWORK_ALEX)
+            let target = GetAttackedUnitBJ()
+            let alex = EventData.getTriggerUnit()
+            let currentTime = getElapsedGameTime()
+            if(currentTime - lastAttacked > 7)
+                SOUND_FILTHY_OLD_SYKA.playOnPoint(alex.getPos3Real())
+                lastAttacked = currentTime
+                alex.addAbility(ABILITY_ALEX_KNOCKBACK)
+                alex.issueTargetOrderById(OrderIds.firebolt, target)
+    EventListener.onCast(ABILITY_ALEX_KNOCKBACK) (caster) ->
+        let target = EventData.getSpellTargetUnit()
+        addToBayWatch(target, 10)
+        doAfter(.5) () ->
+            Knockback3.add(target, 2000, caster.getFacingAngle(), angle(PI / 2.5))
+            caster.damageTarget(target, 400)
+            caster.removeAbility(ABILITY_ALEX_KNOCKBACK)
+        
