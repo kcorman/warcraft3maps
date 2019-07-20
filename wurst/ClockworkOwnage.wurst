@@ -39,6 +39,7 @@ init
             group attackers = getUnitsInRangeOfLocMatchingClosure(1200, caster.getPos()) (unit u) ->
                 return u == caster or (u.isAlive() and u.getTypeId() == CLOCKWORK_DROOG and not u.getOwner().isEnemyOf(caster.getOwner()))
             for unit attacker in attackers
+                addToBayWatch(attacker, 15)
                 flashEffect(Abilities.polyMorphTarget, attacker.getPos3Real() + vec3(0,0,100))
                 attacker.hide()
                 attacker.pause()
