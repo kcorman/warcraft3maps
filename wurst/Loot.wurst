@@ -38,7 +38,7 @@ init
         let dyingUnit = GetDyingUnit()
                     //setTextTagTime(t, 2)
         if(dyingUnit.hasAbility(ABILITY_GIVES_BOSS_LOOT))
-            let baseGold = dyingUnit.getLevel() * 100
+            let baseGold = dyingUnit.getLevel() * 50
             for player p in Utils.allPlayers
                 p.addGold(baseGold)
                 createTTEx(dyingUnit.getPos3Real(), vec2(0, .03), "BOSS +" + baseGold.toString(), 10, 2, colorA(255, 215, 0,0))
@@ -49,8 +49,8 @@ init
                 createItem(ITEM_GOLD, GetDyingUnit().getPos())
 
             if(dyingUnit.getOwner() == BadGuy)
-                let baseGold = dyingUnit.getLevel() * 10
-                let perPersonGold = (dyingUnit.getLevel() * 10 / Utils.allPlayers.size().toReal()).toInt()
+                let baseGold = dyingUnit.getLevel() * 8
+                let perPersonGold = (dyingUnit.getLevel() * 8 / Utils.allPlayers.size().toReal()).toInt()
                 let totalGold = baseGold + perPersonGold
                 for player p in Utils.allPlayers
                     p.addGold(totalGold)
