@@ -331,7 +331,7 @@ public constant CLOCKWORK_ALEX = compiletime(UNIT_ID_GEN.next())
         ..setScalingValue(1.4)
         ..setSpeedBase(320)
         ..setManaRegeneration(1.)
-        ..setNormalAbilities(commaList(ABILITY_CANE_STORM, ABILITY_SURPRISE_VISIT))
+        ..setNormalAbilities(commaList(ABILITY_CANE_STORM, ABILITY_SURPRISE_VISIT, ABILITY_INOUT))
 
 public constant CLOCKWORK_DROOG = compiletime(UNIT_ID_GEN.next())
 @compiletime function genDroof()

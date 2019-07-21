@@ -25,14 +25,77 @@ import HashMap
 import PTQConstants
 import Sound
 let SOUND_SURPRISE_VISIT = new SoundDefinition("Sounds\\SurpriseVisit.mp3", false)
+let SOUND_INOUT = new SoundDefinition("Sounds\\InoutInout.mp3", false)
 let SOUND_FILTHY_OLD_SYKA = new SoundDefinition("Sounds\\FilythOldSyka.mp3", false)
 var lastAttacked = getElapsedGameTime()
+
+class InOutInOut
+    LinkedList<unit> participants
+    unit victim
+    unit caster
+    CallbackCounted cb
+    construct(unit caster, unit victim)
+        participants = new LinkedList<unit>
+        this.victim = victim
+        this.caster = caster
+        let io = this
+        cb = doPeriodicallyTimed(.04, 8) (CallbackCounted cb) ->
+            if(cb.isLast())
+                destroy io
+            else
+                doTick()
+    function doTick()
+        var index = 0
+        for unit u in participants
+            let ang = (PI * getElapsedGameTime() + (PI2 / participants.size()) * index).asAngleRadians()
+            u.setXY(victim.getPos() + ang.toVec(100))
+            SetUnitFacingToFaceUnitTimed(u, victim, 0)
+            index+=1
+        if(not victim.isAlive())
+            cb.stop()
+            destroy this
+
+    function addParticipant(unit part)
+        participants.add(part)
+        part.issueTargetOrder("attack", victim)
+
+    ondestroy
+        caster.disableAbility(ABILITY_SURPRISE_VISIT, false, false)
+        destroy participants
 init
-    EventListener.onCast(ABILITY_SURPRISE_VISIT) (unit caster) ->
-        
+    EventListener.onCast(ABILITY_INOUT) (unit caster) ->
         group potentialTargets = getUnitsInRangeOfLocMatchingClosure(1500, caster.getPos()) (unit u) ->
             return u.isAlive() and not u.isInvulnerable() and u.isType(UNIT_TYPE_HERO)
         if(not potentialTargets.isEmpty())
+            
+            caster.disableAbility(ABILITY_SURPRISE_VISIT, true, false)
+            let target = potentialTargets.getRandomUnit()
+            potentialTargets.destr()
+            SOUND_INOUT.play()
+            group attackers = getUnitsInRangeOfLocMatchingClosure(1200, caster.getPos()) (unit u) ->
+                return u == caster or (u.isAlive() and u.getTypeId() == CLOCKWORK_DROOG and not u.getOwner().isEnemyOf(caster.getOwner()))
+            
+            caster.pause()
+            for unit attacker in attackers
+                attacker.issueTargetOrder("move", caster)
+            doAfter(3) () ->
+                caster.unpause()
+                let io = new InOutInOut(caster, target)
+                for unit attacker in attackers
+                    addToBayWatch(attacker, 15)
+                    attacker.attemptJumpToTarget(target, 1000, 500) (boolean hitTarget) ->
+                        if(hitTarget)
+                            io.addParticipant(attacker)
+                   
+                attackers.destr()
+
+
+    EventListener.onCast(ABILITY_SURPRISE_VISIT) (unit caster) ->
+        group potentialTargets = getUnitsInRangeOfLocMatchingClosure(1500, caster.getPos()) (unit u) ->
+            return u.isAlive() and not u.isInvulnerable() and u.isType(UNIT_TYPE_HERO)
+        if(not potentialTargets.isEmpty())
+        
+            caster.disableAbility(ABILITY_INOUT, true, false)
             let target = potentialTargets.getRandomUnit()
             potentialTargets.destr()
             SOUND_SURPRISE_VISIT.play()
@@ -56,6 +119,8 @@ init
                 target.pause()
                 let ef = addEffect(Abilities.stasisTotemTarget, target, "overhead")
                 doAfter(2) () ->
+                    
+                    caster.disableAbility(ABILITY_INOUT, false, false)
                     target.unpause()
                     ef.destr()
     EventListener.add(EVENT_PLAYER_UNIT_ATTACKED) () ->
@@ -63,7 +128,7 @@ init
             let target = GetAttackedUnitBJ()
             let alex = EventData.getTriggerUnit()
             let currentTime = getElapsedGameTime()
-            if(currentTime - lastAttacked > 7)
+            if(currentTime - lastAttacked > 9)
                 SOUND_FILTHY_OLD_SYKA.playOnPoint(alex.getPos3Real())
                 lastAttacked = currentTime
                 alex.addAbility(ABILITY_ALEX_KNOCKBACK)
