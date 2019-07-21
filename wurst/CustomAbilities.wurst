@@ -733,7 +733,7 @@ public constant ABILITY_SHREK_STAMPEDE = compiletime(ABIL_ID_GEN.next())
     ..setMissileArt(Units.easterRabbit)
     ..presetButtonPosNormal(3, 2)
     ..presetButtonPosResearch(3, 0)
-    ..presetIcon(Icons.bTNAcorn)
+    ..presetIcon(Icons.bTNCritterChicken)
 
 public constant sylarWatch = compiletime(ABIL_ID_GEN.next())
 @compiletime function genWatch()
