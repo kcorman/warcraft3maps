@@ -256,7 +256,7 @@ function setOnFire(unit target)
     let ef = addEffect(Doodads.firePillarMedium, target, "head")
     let oldSpeed = target.getMoveSpeed()
     target.setMoveSpeed(522)
-    let duration = 6.
+    let duration = 3.
     getTimer().doPeriodicallyTimed(.5, duration) (CallbackCounted cb) ->
         target.issuePointOrder("move", target.getPos().polarOffset(angle(GetRandomReal(0, 360)), 400))
     getTimer().doPeriodicallyTimed(.10, duration) (CallbackCounted cb) ->
