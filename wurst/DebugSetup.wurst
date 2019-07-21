@@ -10,10 +10,10 @@ constant player DEBUG_PLAYER = Player(0)
 init
     //var u = createUnit(DEBUG_PLAYER, SYLAR, DEBUG_SPAWN_UNIT_POS, angle(0))
     var u = createUnit(DEBUG_PLAYER, SILLY_REVENANT, DEBUG_SPAWN_UNIT_POS, angle(0))
-    u.setLevel(12, true)
+    u.setLevel(25, true)
 
     u = createUnit(DEBUG_PLAYER, SYLAR, DEBUG_SPAWN_UNIT_POS, angle(0))
-    u.setLevel(12, true)
+    u.setLevel(25, true)
     /*let demon = createUnit(DEBUG_PLAYER, DEMONESS, DEBUG_SPAWN_UNIT_POS, angle(0))
     demon.setLevel(12, true)
     u = createUnit(DEBUG_PLAYER, UnitIds.bandit, DEBUG_SPAWN_UNIT_POS, angle(0))..removeAbility(AbilityIds.shadowMeld)
