@@ -4,10 +4,34 @@ import CustomUnits
 import CustomUnitIds
 import ClosureEvents
 import AbilityIds
+import HashMap
 import ClosureTimers
 let DEBUG_SPAWN_UNIT_POS = gg_rct_helperArea.getCenter()
 constant player DEBUG_PLAYER = Player(0)
+constant HashMap<string, int> UNIT_TYPE_MAP = new HashMap<string, int>
+constant HashMap<player, unit> selectedUnitMap = new HashMap<player, unit>
+function addUnitDef(int unitType)
+    let u = createUnit(Player(0), unitType, vec2(0,0), angle(0))
+    UNIT_TYPE_MAP.put(u.getName(), u.getTypeId())
+    u.remove()
+function splitStart(string og, string start) returns string
+    if(og.length() >= start.length())
+        if(og.startsWith(start))
+            return og.substring(start.length())
+    return ""
 init
+    // These make it possible to spawn the following units with the -spawn command
+    addUnitDef('O004')
+    addUnitDef('H000')
+    addUnitDef('H002')
+    addUnitDef('O001')
+    addUnitDef(SYLAR)
+    addUnitDef(SANTA)
+    addUnitDef(DEMONESS)
+    addUnitDef(MIKE_TYSON)
+    addUnitDef(DRUID_OF_CLAW)
+    addUnitDef(PALADOUT)
+    addUnitDef(SILLY_REVENANT)
     //var u = createUnit(DEBUG_PLAYER, SYLAR, DEBUG_SPAWN_UNIT_POS, angle(0))
     //var u = createUnit(DEBUG_PLAYER, SILLY_REVENANT, DEBUG_SPAWN_UNIT_POS, angle(0))
     //u.setLevel(25, true)
@@ -30,3 +54,21 @@ init
             DEBUG_PLAYER.setCameraField(CAMERA_FIELD_ROTATION, (demon.getFacingAngle() + angle(PI)).degrees() , 0)
             DEBUG_PLAYER.setCameraField(CAMERA_FIELD_ZOFFSET, 400, 0)
             DEBUG_PLAYER.setCameraField(CAMERA_FIELD_TARGET_DISTANCE, 500, 0)*/
+    let SPAWN_HERO_MSG = "-spawn "
+    let LEVEL_MSG = "-levelup "
+
+    EventListener.add(EVENT_PLAYER_UNIT_SELECTED) () ->
+        selectedUnitMap.put(EventData.getTriggerPlayer(), EventData.getTriggerUnit())
+
+    EventListener.add(EVENT_PLAYER_CHAT_FILTER) () ->
+        let msg = EventData.getChatMessage()
+        if(msg.startsWith(SPAWN_HERO_MSG))
+            let typeString = splitStart(msg, SPAWN_HERO_MSG)
+            if(UNIT_TYPE_MAP.has(typeString))
+                let unitType = UNIT_TYPE_MAP.get(typeString)
+                let u = createUnit(EventData.getTriggerPlayer(), unitType, DEBUG_SPAWN_UNIT_POS, angle(0))
+            else
+                printTimedToPlayer("Unknown unit type: " + typeString, 5, EventData.getTriggerPlayer())
+        if(msg.startsWith(LEVEL_MSG))
+            let lvlString = splitStart(msg, LEVEL_MSG)
+            selectedUnitMap.get(EventData.getTriggerPlayer()).setLevel(lvlString.toInt(), true)

@@ -1,0 +1,51 @@
+package Upgrades
+import ClosureEvents
+import CustomAbilities
+import GameTimer
+import ClosureTimers
+import TimerUtils
+import ClosureForGroups
+import Texttag
+import Vectors
+import GameInit
+import MissleEffects
+import Effect
+import Assets
+import OrderIds
+import HashSet
+import Lightning
+import DummyCaster
+import SoundUtils
+import Knockback3
+import AbilityUtils
+import LinkedList
+import CustomUnits
+import HashList
+import HashMap
+import PTQConstants
+constant TECH_TOWER_INSURANCE = 'R004'
+constant vec2 TEST_SPACE = gg_rct_goldtest.getCenter()
+HashMap<int, int> goldCost = new HashMap<int, int>
+
+function getUnitGoldCost(unit u) returns int
+    if(goldCost.has(u.getTypeId()))
+        return goldCost.get(u.getTypeId())
+    return 100
+init
+    // TODO: There's gotta be a better way
+    goldCost.put('o002', 200)
+    goldCost.put('o009', 300)
+    goldCost.put('o00C', 3500)
+    goldCost.put('o00A', 800)
+    goldCost.put('o00D', 600)
+    goldCost.put('o00B', 400)
+    goldCost.put('n00Q', 1000)
+    goldCost.put('o007', 300)
+    EventListener.add(EVENT_PLAYER_UNIT_DEATH) () ->
+        if(EventData.getDyingUnit().isType(UNIT_TYPE_STRUCTURE))
+            let insuranceLvl = GetPlayerTechCountSimple(TECH_TOWER_INSURANCE, EventData.getDyingUnit().getOwner())
+            if(insuranceLvl > 0)
+                let returnedGoldPercent = .10 + insuranceLvl * .40
+                let goldAmt = getUnitGoldCost(EventData.getDyingUnit()) * returnedGoldPercent
+                EventData.getDyingUnit().getOwner().addGold(goldAmt.toInt())
+                createTTEx(EventData.getDyingUnit().getPos3Real(), vec2(0, .03), "+" + goldAmt.toInt().toString(), 10, 2, colorA(255, 215, 0,0), EventData.getDyingUnit().getOwner())
