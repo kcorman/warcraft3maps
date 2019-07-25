@@ -59,7 +59,7 @@ class Floor100
             u.unpause()
             u.show()
             u.setInvulnerable(false)
-            if(not u.isEnemyOf(caster.getOwner()))
+            if(u.isEnemyOf(caster.getOwner()))
                 caster.damageTarget(u, damage)
         destroy this
     static function onCast(unit caster)
