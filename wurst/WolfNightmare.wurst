@@ -59,6 +59,7 @@ class WolfNightmare
         cameraTimer.release()
         caster.resetAbilityCooldown(ABILITY_WOLF_NIGHTMARE)
         victim.setPos(ogLoc)
+        victim.getOwner().setCameraTargetControllerNoZ(null, vec2(0,0), true)
         victim.getOwner().resetToGameCamera(0)
         wolf.remove()
         getTimer().doAfter(.25) () ->

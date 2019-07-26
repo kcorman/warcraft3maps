@@ -356,7 +356,7 @@ public class NagaWitchAI extends AbstractAIHandler
         let lt = addLightning(LIGHTNING_FINGER_OF_DEATH, true, u.getPos3with(1000), target.getPos3with(1000))
         doPeriodicallyTimed(.10, 3) (CallbackCounted cb) ->
             lt.move(true, u.getPos3with(1000), target.getPos3with(1000))
-            let pos = u.getPos()
+            let pos = target.getPos()
             if(cb.isLast())
                 target.setInvulnerable(false)
                 target.explode()

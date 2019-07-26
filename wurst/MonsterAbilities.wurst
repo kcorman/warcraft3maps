@@ -28,7 +28,7 @@ import CustomUnits
 constant int MURLOC_HEAD = 'n00O'
 constant int MEAT_WAGON = 'umtw'
 constant int ABILITY_CYCLOPS_BEAM = 'A01S'
-constant int MAX_COILS = 50
+constant int MAX_COILS = 8
 constant int ABILITY_SET_TARGET_WAY_GATE = 'A01T'
 constant SoundDefinition boneCrack = new SoundDefinition(Sounds.skeletonWhat1, false, true)
 constant SoundDefinition SOUND_MAMMOTH_CHARGE_HIT = new SoundDefinition(Sounds.rockHeavyBashFlesh2, false)
@@ -228,7 +228,7 @@ function doCrabJump(unit caster, group targets)
                     else
                         let ratio = (ct - cb.getCount()) / ct
                         ef.setPitch(PI * ratio)
-                let hpFactor = 200.0
+                let hpFactor = 100.0
                 caster.setHP(caster.getHP() / hpFactor)
                 ATTACK_THE_CRAB.play()
                 caster.setMaxHP((caster.getMaxHP() / hpFactor).toInt())
@@ -323,7 +323,7 @@ init
             group dmged = getUnitsInRangeOfLocMatchingClosure(200, target) (unit u) ->
                 return u.isEnemyOf(caster.getOwner()) and not u.isInvulnerable()
             for unit u in dmged
-                caster.damageTarget(u, 75)
+                caster.damageTarget(u, 200)
             dmged.destr()
             if(cb.isLast())
                 ef.destr()
@@ -642,11 +642,10 @@ init
             let attacked = GetAttackedUnitBJ()
             if(attacked.isType(UNIT_TYPE_HERO))
                 getTimer().doAfter(1) () ->
-                    if(attacked.getOwner().getGold() >= gold)
-                        attacked.getOwner().addGold(-gold)
-                    createTTEx(attacked.getPos3Real(), vec2(0, -.03), "-" + gold.toString(), 10, 2, colorA(255, 215, 0,0))
                     for i = 0 to GetRandomInt(0, 4)
-                        if(attacked.getOwner().getGold() > 0)
+                        if(attacked.getOwner().getGold() >= gold)
+                            attacked.getOwner().addGold(-gold)
+                            createTTEx(attacked.getPos3Real(), vec2(0, -.03), "-" + gold.toString(), 10, 2, colorA(255, 215, 0,0))
                             createItem('gold', attacked.getPos().polarOffset(attacked.getPos().angleTo(attacker.getPos()), (50 + i * 50).toReal()))
 
             
