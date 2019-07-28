@@ -32,7 +32,8 @@ init
     addUnitDef(DRUID_OF_CLAW)
     addUnitDef(PALADOUT)
     addUnitDef(SILLY_REVENANT)
-    //var u = createUnit(DEBUG_PLAYER, SYLAR, DEBUG_SPAWN_UNIT_POS, angle(0))
+    //var un = createUnit(DEBUG_PLAYER, ZOMBIE_BASIC, DEBUG_SPAWN_UNIT_POS, angle(0))
+
     //var u = createUnit(DEBUG_PLAYER, SILLY_REVENANT, DEBUG_SPAWN_UNIT_POS, angle(0))
     //u.setLevel(25, true)
 

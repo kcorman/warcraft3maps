@@ -664,7 +664,24 @@ init
         if(GetSpellTargetUnit().hasAbility(ABILITY_SET_TARGET_WAY_GATE))
             WaygateSetDestination(caster, tg.x, tg.y)
             WaygateActivate(caster, true)
+    
+    EventListener.add(EVENT_PLAYER_UNIT_SPELL_CAST) () -> 
+        if(EventData.getSpellAbilityId() == ABILITY_EAT_CORPSE_MAKE_ZOMBIE)
+            let caster = EventData.getSpellAbilityUnit()
+            caster.setAnimation("Spell Channel")
+            doAfter(2) ->
+                ResetUnitAnimation(caster)
+    // Zombies
+    EventListener.add(EVENT_PLAYER_UNIT_SPELL_FINISH) () ->
+        if(EventData.getSpellAbilityId() == ABILITY_EAT_CORPSE_MAKE_ZOMBIE)
+            EventData.getSpellAbilityUnit().setHP(EventData.getSpellAbilityUnit().getMaxHP())
 
+    EventListener.add(EVENT_PLAYER_UNIT_SUMMON) () ->
+        let summoned = EventData.getSummounedUnit()
+        if(summoned.getTypeId() == ZOMBIE_OG or summoned.getTypeId() == ZOMBIE_BASIC)
+            summoned.setAnimation("Morph Alternate")
+            doAfter(2) ->
+                ResetUnitAnimation(summoned)
         
 
                 

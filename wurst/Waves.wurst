@@ -258,7 +258,7 @@ init
         new UnitAndAmount(ZOMBIE, 3),
         new UnitAndAmount(GHOUL, 1),
         new UnitAndAmount(TUFF_ZOMBIE, 1)
-    ), "Zombies, Ghouls, and tuff zombies. Just getting started.", false))
+    )))
     waves.add(new Wave(toList(
         new UnitAndAmount(ZOMBIE, 3),
         new UnitAndAmount(SKELETON_PRIEST, 1),
@@ -280,15 +280,9 @@ init
         new UnitAndAmount(GIANT_GHOUL, 1, true) // boss wave
     ), "Boss: Giant Ghoul. Regenerates health by eating your face.", true))
     waves.add(new Wave(toList(
-        new UnitAndAmount(ZOMBIE, 3),
-        new UnitAndAmount(GHOUL, 2),
-        new UnitAndAmount(TUFF_ZOMBIE, 2),
-        new UnitAndAmount(BIG_GOOL, 3, false),
-        new UnitAndAmount(GOST, 4),
-        new UnitAndAmount(MEAT_WAGON, 1),
-        new UnitAndAmount(GHOST_GOLEM, 1),
-        new UnitAndAmount(GHOSTMANCER, 3)
-    ), "Gosts possess. And meatwagons do the ol' siegy thing.", false))
+        new UnitAndAmount(SICK_VILLAGER, 3),
+        new UnitAndAmount(DISGRUNTLED_VILLAGER, 12)
+    )))
     waves.add(new Wave(toList(
         new UnitAndAmount(ZOMBIE, 5),
         new UnitAndAmount(MEAT_WAGON, 1),
@@ -299,7 +293,7 @@ init
         new UnitAndAmount(GHOUL, 4)
     ), "Life stealing ghosts return all damage taken to their target. Try not to kill your friends.", false))
     waves.add(new Wave(toList(
-        new UnitAndAmount(ZOMBIE, 5),
+        new UnitAndAmount(DISGRUNTLED_VILLAGER, 5),
         new UnitAndAmount(MEAT_WAGON, 1),
         new UnitAndAmount(ZOMBIEMANCER, 6),
         new UnitAndAmount(OBSIDIAN_STATUTE,3)
